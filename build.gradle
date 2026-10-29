@@ -20,6 +20,18 @@ loom {
 			sourceSet sourceSets.client
 		}
 	}
+
+	runs {
+		server {
+			runDir "run/server"
+		}
+		client2 {
+			client()
+			configName = "Minecraft Client 2"
+			runDir "run/client2"
+			programArgs "--username", "Buddy2", "--quickPlayMultiplayer", "localhost:25565"
+		}
+	}
 }
 
 dependencies {

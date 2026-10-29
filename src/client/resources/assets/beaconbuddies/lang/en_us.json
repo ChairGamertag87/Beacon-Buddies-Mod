@@ -1,0 +1,15 @@
+{
+	"key.category.beaconbuddies.main": "Beacon Buddies",
+	"key.beaconbuddies.toggle": "Toggle buddy mode",
+	"beaconbuddies.message.enabled": "Beacon Buddies: mode enabled",
+	"beaconbuddies.message.disabled": "Beacon Buddies: mode disabled",
+	"beaconbuddies.message.offline": "Beacon Buddies: relay unreachable, retrying",
+	"beaconbuddies.message.unavailable": "Beacon Buddies: multiplayer only",
+	"beaconbuddies.status.enabled": "Beacon Buddies: mode enabled",
+	"beaconbuddies.status.disabled": "Beacon Buddies: mode disabled",
+	"beaconbuddies.status.offline": "Beacon Buddies: relay unreachable",
+	"beaconbuddies.status.unavailable": "Beacon Buddies: multiplayer only",
+	"beaconbuddies.list.empty": "No other player has the mode enabled here",
+	"beaconbuddies.list.entry": "%s: %s m",
+	"beaconbuddies.list.other_dimension": "%s: other dimension"
+}
