@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "beaconbuddies",
+	"version": "${version}",
+	"name": "Beacon Buddies",
+	"description": "Les joueurs qui activent le mode se voient en glowing et suivent leur distance dans un HUD.",
+	"authors": [
+		"ChairGamertag87"
+	],
+	"icon": "assets/beaconbuddies/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.chairgamertag87.beaconbuddies.BeaconBuddies"
+		],
+		"client": [
+			"com.chairgamertag87.beaconbuddies.client.BeaconBuddiesClient"
+		]
+	},
+	"mixins": [
+		{
+			"config": "beaconbuddies.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
