@@ -1,7 +1,6 @@
 package com.chairgamertag87.beaconbuddies.client;
 
 import com.chairgamertag87.beaconbuddies.BeaconBuddies;
-import com.chairgamertag87.beaconbuddies.client.relay.Buddy;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
@@ -13,15 +12,15 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
 import org.lwjgl.glfw.GLFW;
 
-import java.util.Comparator;
 import java.util.List;
 
 public class BeaconBuddiesClient implements ClientModInitializer {
@@ -45,6 +44,8 @@ public class BeaconBuddiesClient implements ClientModInitializer {
 		});
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> registerCommand(dispatcher));
+
+		HudElementRegistry.attachElementAfter(VanillaHudElements.BOSS_BAR, BeaconBuddies.id("buddies"), new BuddiesHud());
 	}
 
 	private static void registerCommand(CommandDispatcher<FabricClientCommandSource> dispatcher) {
@@ -75,36 +76,21 @@ public class BeaconBuddiesClient implements ClientModInitializer {
 	}
 
 	private static int list(CommandContext<FabricClientCommandSource> ctx) {
-		Minecraft client = Minecraft.getInstance();
-		LocalPlayer player = client.player;
-		if (!BuddiesSession.isEnabled() || player == null || client.level == null) {
+		if (!BuddiesSession.isEnabled()) {
 			return status(ctx);
 		}
-		String dimension = client.level.dimension().identifier().toString();
-		List<Buddy> sorted = BuddiesSession.getBuddies().values().stream()
-				.sorted(Comparator.comparingDouble(b -> distance(player, b, dimension)))
-				.toList();
-		if (sorted.isEmpty()) {
+		List<BuddyList.Entry> entries = BuddyList.sorted(Minecraft.getInstance());
+		if (entries.isEmpty()) {
 			ctx.getSource().sendFeedback(Component.translatable("beaconbuddies.list.empty"));
 			return 1;
 		}
-		for (Buddy buddy : sorted) {
-			double distance = distance(player, buddy, dimension);
-			Component line = Double.isInfinite(distance)
-					? Component.translatable("beaconbuddies.list.other_dimension", buddy.name())
-					: Component.translatable("beaconbuddies.list.entry", buddy.name(), Math.round(distance));
+		for (BuddyList.Entry entry : entries) {
+			String name = entry.buddy().name();
+			Component line = entry.otherDimension()
+					? Component.translatable("beaconbuddies.list.other_dimension", name)
+					: Component.translatable("beaconbuddies.list.entry", name, Math.round(entry.distance()));
 			ctx.getSource().sendFeedback(line);
 		}
 		return 1;
-	}
-
-	private static double distance(LocalPlayer player, Buddy buddy, String dimension) {
-		if (!buddy.dimension().equals(dimension)) {
-			return Double.POSITIVE_INFINITY;
-		}
-		double dx = buddy.x() - player.getX();
-		double dy = buddy.y() - player.getY();
-		double dz = buddy.z() - player.getZ();
-		return Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}
 }

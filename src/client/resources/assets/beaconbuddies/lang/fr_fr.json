@@ -11,5 +11,10 @@
 	"beaconbuddies.status.unavailable": "Beacon Buddies : disponible uniquement en multijoueur",
 	"beaconbuddies.list.empty": "Aucun autre joueur n'a le mode actif ici",
 	"beaconbuddies.list.entry": "%s : %s m",
-	"beaconbuddies.list.other_dimension": "%s : autre dimension"
+	"beaconbuddies.list.other_dimension": "%s : autre dimension",
+	"beaconbuddies.hud.distance": "%s m",
+	"beaconbuddies.hud.other_dimension": "Autre dimension",
+	"beaconbuddies.hud.empty": "Personne d'autre ici",
+	"beaconbuddies.hud.title": "BEACON BUDDIES",
+	"beaconbuddies.hud.more": "+%s autres"
 }
