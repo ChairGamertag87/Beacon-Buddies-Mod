@@ -1,6 +1,7 @@
 package com.chairgamertag87.beaconbuddies.client;
 
 import com.chairgamertag87.beaconbuddies.BeaconBuddies;
+import com.chairgamertag87.beaconbuddies.client.screen.BuddiesSettingsScreen;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
@@ -27,18 +28,37 @@ public class BeaconBuddiesClient implements ClientModInitializer {
 	public static final KeyMapping.Category KEY_CATEGORY = KeyMapping.Category.register(BeaconBuddies.id("main"));
 
 	private static KeyMapping toggleKey;
+	private static KeyMapping menuKey;
+	private static KeyMapping hudKey;
 
 	@Override
 	public void onInitializeClient() {
+		BuddiesConfig.load();
+
+		menuKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+				"key.beaconbuddies.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, KEY_CATEGORY));
 		toggleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
 				"key.beaconbuddies.toggle", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_J, KEY_CATEGORY));
+		hudKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+				"key.beaconbuddies.hud", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, KEY_CATEGORY));
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> BuddiesSession.onJoin(client));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> BuddiesSession.onDisconnect());
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			while (menuKey.consumeClick()) {
+				client.setScreen(new BuddiesSettingsScreen(client.screen));
+			}
 			while (toggleKey.consumeClick()) {
 				BuddiesSession.toggle();
+			}
+			while (hudKey.consumeClick()) {
+				BuddiesConfig config = BuddiesConfig.get();
+				config.hudVisible = !config.hudVisible;
+				BuddiesConfig.save();
+				if (client.player != null) {
+					client.player.displayClientMessage(Component.translatable(config.hudVisible ? "beaconbuddies.message.hud_shown" : "beaconbuddies.message.hud_hidden"), true);
+				}
 			}
 			BuddiesSession.tick(client);
 		});

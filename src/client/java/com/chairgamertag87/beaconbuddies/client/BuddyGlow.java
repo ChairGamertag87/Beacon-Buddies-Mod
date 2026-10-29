@@ -4,8 +4,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 public final class BuddyGlow {
-	public static final int DEFAULT_COLOR = 0xFFFFFF;
-
 	private BuddyGlow() {
 	}
 
@@ -17,6 +15,7 @@ public final class BuddyGlow {
 	}
 
 	public static int color() {
-		return DEFAULT_COLOR;
+		Integer color = BuddiesConfig.get().glowFormatting().getColor();
+		return color != null ? color : 0xFFFFFF;
 	}
 }
