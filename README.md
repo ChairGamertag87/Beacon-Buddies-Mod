@@ -1,22 +1,23 @@
 # Beacon Buddies
 
-Mod Fabric **client** pour Minecraft **1.21.11**. Active le mode, et tu vois en glowing les autres joueurs du serveur qui l'ont activé aussi, avec un petit panneau qui affiche leur pseudo et leur distance.
+Mod Fabric **client** pour Minecraft **1.21.11**. Active le mode, et tu vois en glowing les autres joueurs du serveur qui l'ont activé aussi. Un tableau en haut de l'écran affiche leur distance, le temps de jeu des joueurs connectés et les blocs posés par toi et tes buddies.
 
 Il marche sur n'importe quel serveur : rien à installer côté serveur, tout passe par un petit relais WebSocket.
 
-![Un buddy en glowing et le panneau des buddies en haut à droite](docs/hud.webp)
+![Un buddy en glowing et le tableau Beacon Buddies en haut à droite, avec la distance, la session, le temps total et les blocs posés de chaque joueur](docs/hud.webp)
 
 ## Fonctionnalités
 
 - **Mode mutuel** : tu ne vois que les joueurs qui ont activé le mode, et seuls eux te voient. Les autres ne voient rien de spécial.
 - **Glowing** : contour à travers les murs sur les buddies proches, couleur au choix parmi les 16 couleurs de Minecraft.
-- **HUD** : un seul tableau avec une ligne par joueur (tête du skin, pseudo) et une colonne par info. Toi en premier, puis tes buddies du plus proche au plus loin, puis les autres joueurs du serveur.
-  - Distance en couleur : vert à moins de 50 blocs, jaune à moins de 200, rouge au-delà.
-  - "Autre dimension" en gris pour ceux qui ne sont pas dans ta dimension.
+- **HUD** : un seul tableau, avec une ligne par joueur (tête du skin et pseudo) et une colonne par info.
+  - Ordre des lignes : toi en premier (en turquoise), puis tes buddies du plus proche au plus loin, puis les autres joueurs du serveur (en gris).
+  - Le chiffre dans la barre de titre est le nombre de buddies.
   - Nombre de lignes réglable, puis "+N autres".
-  - Position en haut à droite, à gauche ou au centre. En haut à droite, le panneau se décale sous les icônes d'effets de potion.
-- **Temps de jeu** : colonnes "Session" et "Total" pour tous les joueurs connectés au serveur (session en cours et temps de jeu total sur ce serveur).
-- **Blocs posés** : colonne "Blocs" avec ton nombre de blocs posés sur le serveur et celui de tes buddies.
+  - Position en haut à droite, à gauche ou au centre. En haut à droite, le tableau se décale sous les icônes d'effets de potion.
+- **Distance** (colonne "Dist.") : pour chaque buddy, en vert à moins de 50 blocs, en jaune à moins de 200, en rouge au-delà. "Autre dim." en gris pour ceux qui ne sont pas dans ta dimension.
+- **Temps de jeu** (colonnes "Session" et "Total") : pour tous les joueurs connectés au serveur, même sans le mod. La session en cours en turquoise, le temps de jeu total sur ce serveur en gris.
+- **Blocs posés** (colonne "Blocs") : ton nombre de blocs posés sur le serveur et celui de tes buddies.
 - **Menu de paramètres** avec aperçu en direct du HUD.
 - Le mode repasse sur off à chaque connexion à un serveur.
 
@@ -50,7 +51,7 @@ Le mode ne marche qu'en multijoueur (pas en solo ni en LAN).
 
 Tout se règle dans le menu (`G`) et est sauvegardé dans `config/beaconbuddies.json` :
 
-![Le menu de paramètres avec l'aperçu du HUD](docs/menu.png)
+![Le menu de paramètres à gauche et l'aperçu du tableau à droite](docs/menu.webp)
 
 | Paramètre | Défaut |
 |---|---|
