@@ -1,0 +1,58 @@
+package com.chairgamertag87.beaconbuddies.client;
+
+import net.minecraft.client.Minecraft;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+
+public final class HudTable {
+	public static final double NO_DISTANCE = Double.NaN;
+	public static final long UNKNOWN = -1;
+
+	public record Row(UUID uuid, String name, boolean self, boolean buddy, double distance, long sessionSeconds, long totalSeconds, long placed) {
+		public boolean otherDimension() {
+			return Double.isInfinite(distance);
+		}
+
+		Row withPlaytime(long session, long total) {
+			return new Row(uuid, name, self, buddy, distance, session, total, placed);
+		}
+	}
+
+	private HudTable() {
+	}
+
+	public static List<Row> rows(Minecraft client) {
+		if (!BuddiesSession.isEnabled() || client.player == null) {
+			return List.of();
+		}
+		UUID selfId = client.player.getUUID();
+		Map<UUID, Row> rows = new LinkedHashMap<>();
+		rows.put(selfId, new Row(selfId, client.getUser().getName(), true, false, NO_DISTANCE, UNKNOWN, UNKNOWN, BlockStats.placed()));
+		for (BuddyList.Entry entry : BuddyList.sorted(client)) {
+			rows.putIfAbsent(entry.buddy().uuid(), new Row(entry.buddy().uuid(), entry.buddy().name(), false, true, entry.distance(), UNKNOWN, UNKNOWN, entry.buddy().placed()));
+		}
+		List<Row> others = new ArrayList<>();
+		for (PlaytimeList.Entry entry : PlaytimeList.sorted()) {
+			Row row = rows.get(entry.uuid());
+			if (row != null) {
+				rows.put(entry.uuid(), row.withPlaytime(entry.sessionSeconds(), entry.totalSeconds()));
+			} else {
+				others.add(new Row(entry.uuid(), entry.name(), false, false, NO_DISTANCE, entry.sessionSeconds(), entry.totalSeconds(), UNKNOWN));
+			}
+		}
+		List<Row> result = new ArrayList<>(rows.values());
+		others.sort(Comparator.comparingLong(Row::totalSeconds).reversed().thenComparing(Row::name, String.CASE_INSENSITIVE_ORDER));
+		result.addAll(others);
+		return result;
+	}
+
+	public static String formatCount(long count) {
+		return String.format(Locale.ROOT, "%,d", count).replace(',', ' ');
+	}
+}

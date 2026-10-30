@@ -3,8 +3,7 @@ package com.chairgamertag87.beaconbuddies.client.screen;
 import com.chairgamertag87.beaconbuddies.client.BuddiesConfig;
 import com.chairgamertag87.beaconbuddies.client.BuddiesHud;
 import com.chairgamertag87.beaconbuddies.client.BuddiesSession;
-import com.chairgamertag87.beaconbuddies.client.BuddyList;
-import com.chairgamertag87.beaconbuddies.client.relay.Buddy;
+import com.chairgamertag87.beaconbuddies.client.HudTable;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -24,20 +23,22 @@ public class BuddiesSettingsScreen extends Screen {
 
 	private static final int PAD = 8;
 	private static final int SETTINGS_WIDTH = 230;
-	private static final int PREVIEW_WIDTH = 140;
+	private static final int PREVIEW_WIDTH = 200;
+	private static final float PREVIEW_SCALE = 0.75f;
 	private static final int GAP = 12;
 	private static final int ROW_STEP = 20;
 	private static final int CONTROL_WIDTH = 100;
 	private static final int CONTROL_HEIGHT = 16;
 	private static final int SECTION_HEIGHT = 14;
 
-	private static final List<BuddyList.Entry> SAMPLE = List.of(
-			sample("Alex", 18),
-			sample("Steve", 64),
-			sample("Luna", 143),
-			sample("Milo", 412),
-			sample("Nova", 1280),
-			sample("Sam", Double.POSITIVE_INFINITY));
+	private static final List<HudTable.Row> SAMPLE = List.of(
+			sample("Toi", true, false, HudTable.NO_DISTANCE, 2_640, 98_400, 12_874),
+			sample("Alex", false, true, 18, 760, 151_200, 3_590),
+			sample("Steve", false, true, 64, 4_380, 553_000, 48_210),
+			sample("Luna", false, true, 412, 7_900, 46_800, 921),
+			sample("Sam", false, true, Double.POSITIVE_INFINITY, 1_200, 8_700, 15_002),
+			sample("Kai", false, false, HudTable.NO_DISTANCE, 300, 2_100, HudTable.UNKNOWN),
+			sample("Milo", false, false, HudTable.NO_DISTANCE, 5_100, 1_800, HudTable.UNKNOWN));
 
 	private record Row(Component label, int y) {
 	}
@@ -61,7 +62,7 @@ public class BuddiesSettingsScreen extends Screen {
 		BuddiesConfig config = BuddiesConfig.get();
 		showPreview = width >= SETTINGS_WIDTH + GAP + PREVIEW_WIDTH + PAD * 2 + 16;
 		panelWidth = SETTINGS_WIDTH + PAD * 2 + (showPreview ? GAP + PREVIEW_WIDTH : 0);
-		panelHeight = BuddiesHud.TITLE_HEIGHT + PAD + SECTION_HEIGHT + ROW_STEP * 7 + PAD + CONTROL_HEIGHT + PAD;
+		panelHeight = BuddiesHud.TITLE_HEIGHT + PAD + SECTION_HEIGHT + ROW_STEP * 9 + PAD + CONTROL_HEIGHT + PAD;
 		panelLeft = (width - panelWidth) / 2;
 		panelTop = Math.max(4, (height - panelHeight) / 2);
 
@@ -89,6 +90,12 @@ public class BuddiesSettingsScreen extends Screen {
 		y += ROW_STEP;
 
 		addRow("beaconbuddies.setting.show_heads", y, toggle(controlX, y, () -> config.showHeads, () -> config.showHeads = !config.showHeads));
+		y += ROW_STEP;
+
+		addRow("beaconbuddies.setting.show_playtime", y, toggle(controlX, y, () -> config.showPlaytime, () -> config.showPlaytime = !config.showPlaytime));
+		y += ROW_STEP;
+
+		addRow("beaconbuddies.setting.show_blocks", y, toggle(controlX, y, () -> config.showBlocks, () -> config.showBlocks = !config.showBlocks));
 		y += ROW_STEP;
 
 		addRow("beaconbuddies.setting.glow_color", y, new BuddiesButton(controlX, y, CONTROL_WIDTH, CONTROL_HEIGHT,
@@ -139,7 +146,15 @@ public class BuddiesSettingsScreen extends Screen {
 			int previewLeft = settingsLeft + SETTINGS_WIDTH + GAP;
 			int previewRight = previewLeft + PREVIEW_WIDTH;
 			drawSection(graphics, Component.translatable("beaconbuddies.screen.preview"), previewLeft, previewRight, sectionY);
-			BuddiesHud.drawPanel(graphics, font, SAMPLE, previewLeft + 1, previewRight - 1, sectionY + SECTION_HEIGHT + 1, BuddiesConfig.get());
+			BuddiesConfig config = BuddiesConfig.get();
+			int previewTop = sectionY + SECTION_HEIGHT + 1;
+			graphics.enableScissor(previewLeft - 1, previewTop - 1, previewRight + 1, panelTop + panelHeight - PAD - CONTROL_HEIGHT - 4);
+			graphics.pose().pushMatrix();
+			graphics.pose().translate(previewLeft + 1, previewTop);
+			graphics.pose().scale(PREVIEW_SCALE, PREVIEW_SCALE);
+			BuddiesHud.drawTable(graphics, font, SAMPLE, 0, Math.round((PREVIEW_WIDTH - 2) / PREVIEW_SCALE), 0, config);
+			graphics.pose().popMatrix();
+			graphics.disableScissor();
 		}
 
 		super.render(graphics, mouseX, mouseY, partialTick);
@@ -169,8 +184,8 @@ public class BuddiesSettingsScreen extends Screen {
 		return false;
 	}
 
-	private static BuddyList.Entry sample(String name, double distance) {
+	private static HudTable.Row sample(String name, boolean self, boolean buddy, double distance, long sessionSeconds, long totalSeconds, long placed) {
 		UUID uuid = UUID.nameUUIDFromBytes(("beaconbuddies:" + name).getBytes());
-		return new BuddyList.Entry(new Buddy(uuid, name, 0, 0, 0, ""), distance);
+		return new HudTable.Row(uuid, name, self, buddy, distance, sessionSeconds, totalSeconds, placed);
 	}
 }

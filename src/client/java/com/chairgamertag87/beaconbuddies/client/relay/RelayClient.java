@@ -12,6 +12,7 @@ import java.net.http.WebSocket;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -32,6 +33,8 @@ public class RelayClient {
 		void onState(boolean enabled);
 
 		void onSync(List<Buddy> buddies);
+
+		void onStats(List<PlayerStat> stats, long relayNow);
 	}
 
 	private final URI uri;
@@ -46,6 +49,8 @@ public class RelayClient {
 	private String helloJson;
 	private WebSocket socket;
 	private boolean open;
+	private volatile boolean statsSupported;
+	private volatile boolean blocksSupported;
 	private boolean wanted;
 	private long retrySeconds = MIN_RETRY_SECONDS;
 	private CompletableFuture<?> sendChain = CompletableFuture.completedFuture(null);
@@ -86,6 +91,14 @@ public class RelayClient {
 		return open;
 	}
 
+	public boolean supportsStats() {
+		return statsSupported;
+	}
+
+	public boolean supportsBlocks() {
+		return blocksSupported;
+	}
+
 	public void sendState(boolean enabled) {
 		JsonObject msg = new JsonObject();
 		msg.addProperty("type", "state");
@@ -100,6 +113,33 @@ public class RelayClient {
 		msg.addProperty("y", y);
 		msg.addProperty("z", z);
 		msg.addProperty("dim", dimension);
+		send(msg.toString());
+	}
+
+	public void sendPlayers(Map<UUID, String> players) {
+		if (!statsSupported) {
+			return;
+		}
+		JsonArray list = new JsonArray();
+		players.forEach((uuid, name) -> {
+			JsonObject player = new JsonObject();
+			player.addProperty("uuid", uuid.toString());
+			player.addProperty("name", name);
+			list.add(player);
+		});
+		JsonObject msg = new JsonObject();
+		msg.addProperty("type", "players");
+		msg.add("players", list);
+		send(msg.toString());
+	}
+
+	public void sendBlocks(long placed) {
+		if (!blocksSupported) {
+			return;
+		}
+		JsonObject msg = new JsonObject();
+		msg.addProperty("type", "blocks");
+		msg.addProperty("placed", placed);
 		send(msg.toString());
 	}
 
@@ -134,6 +174,8 @@ public class RelayClient {
 						}
 						socket = ws;
 						open = true;
+						statsSupported = false;
+						blocksSupported = false;
 						retrySeconds = MIN_RETRY_SECONDS;
 						sendChain = CompletableFuture.completedFuture(null);
 					}
@@ -173,8 +215,13 @@ public class RelayClient {
 		}
 		String type = msg.has("type") ? msg.get("type").getAsString() : "";
 		switch (type) {
+			case "welcome" -> {
+				statsSupported = hasFeature(msg, "stats");
+				blocksSupported = hasFeature(msg, "blocks");
+			}
 			case "state" -> listener.onState(msg.get("enabled").getAsBoolean());
 			case "sync" -> listener.onSync(parseBuddies(msg.getAsJsonArray("players")));
+			case "stats" -> listener.onStats(parseStats(msg.getAsJsonArray("players")), msg.get("now").getAsLong());
 			case "error" -> BeaconBuddies.LOGGER.warn("Erreur du relais : {}", msg.get("message"));
 			default -> {
 			}
@@ -195,12 +242,46 @@ public class RelayClient {
 						p.get("x").getAsDouble(),
 						p.get("y").getAsDouble(),
 						p.get("z").getAsDouble(),
-						p.get("dim").getAsString()));
+						p.get("dim").getAsString(),
+						p.has("placed") ? p.get("placed").getAsLong() : -1));
 			} catch (RuntimeException e) {
 				BeaconBuddies.LOGGER.warn("Joueur invalide ignoré : {}", element);
 			}
 		}
 		return buddies;
+	}
+
+	private static boolean hasFeature(JsonObject welcome, String feature) {
+		JsonArray features = welcome.getAsJsonArray("features");
+		if (features == null) {
+			return false;
+		}
+		for (JsonElement element : features) {
+			if (feature.equals(element.getAsString())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static List<PlayerStat> parseStats(JsonArray players) {
+		List<PlayerStat> stats = new ArrayList<>();
+		if (players == null) {
+			return stats;
+		}
+		for (JsonElement element : players) {
+			try {
+				JsonObject p = element.getAsJsonObject();
+				stats.add(new PlayerStat(
+						UUID.fromString(p.get("uuid").getAsString()),
+						p.get("name").getAsString(),
+						p.get("totalSeconds").getAsLong(),
+						p.get("sessionStart").getAsLong()));
+			} catch (RuntimeException e) {
+				BeaconBuddies.LOGGER.warn("Stat invalide ignorée : {}", element);
+			}
+		}
+		return stats;
 	}
 
 	private class SocketListener implements WebSocket.Listener {

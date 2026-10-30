@@ -13,8 +13,7 @@
 	"beaconbuddies.list.entry": "%s: %s m",
 	"beaconbuddies.list.other_dimension": "%s: other dimension",
 	"beaconbuddies.hud.distance": "%s m",
-	"beaconbuddies.hud.other_dimension": "Other dimension",
-	"beaconbuddies.hud.empty": "Nobody else here",
+	"beaconbuddies.hud.other_dimension": "Other dim.",
 	"beaconbuddies.hud.title": "BEACON BUDDIES",
 	"beaconbuddies.hud.more": "+%s more",
 	"key.beaconbuddies.menu": "Open menu",
@@ -54,5 +53,12 @@
 	"beaconbuddies.color.red": "Red",
 	"beaconbuddies.color.light_purple": "Pink",
 	"beaconbuddies.color.yellow": "Yellow",
-	"beaconbuddies.color.white": "White"
+	"beaconbuddies.color.white": "White",
+	"beaconbuddies.setting.show_playtime": "Playtime",
+	"beaconbuddies.setting.show_blocks": "Blocks placed",
+	"beaconbuddies.hud.column.player": "Player",
+	"beaconbuddies.hud.column.distance": "Dist.",
+	"beaconbuddies.hud.column.session": "Session",
+	"beaconbuddies.hud.column.total": "Total",
+	"beaconbuddies.hud.column.blocks": "Blocks"
 }

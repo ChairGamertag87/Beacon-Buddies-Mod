@@ -47,6 +47,8 @@ public final class BuddiesConfig {
 	public int maxRows = 8;
 	public boolean distanceColors = true;
 	public boolean showHeads = true;
+	public boolean showPlaytime = true;
+	public boolean showBlocks = true;
 	public String glowColor = ChatFormatting.WHITE.getName();
 
 	public static BuddiesConfig get() {

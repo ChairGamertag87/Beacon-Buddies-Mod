@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.PlayerSkin;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,13 +33,28 @@ public class BuddiesHud implements HudElement {
 	private static final int PADDING = 5;
 	private static final int ROW_HEIGHT = 12;
 	private static final int HEAD_SIZE = 8;
-	private static final int COLUMN_GAP = 14;
+	private static final int COLUMN_GAP = 12;
 	private static final int MIN_WIDTH = 110;
 
 	private static final int ROW_STRIPE = 0x10FFFFFF;
+	private static final int HEADER_BG = 0x30000000;
+	private static final int OTHER = 0xFFB4BEC3;
 	private static final int NEAR = 0xFF5BD873;
 	private static final int MID = 0xFFE9C54A;
 	private static final int FAR = 0xFFE5574E;
+
+	private enum Column {
+		DISTANCE("beaconbuddies.hud.column.distance"),
+		SESSION("beaconbuddies.hud.column.session"),
+		TOTAL("beaconbuddies.hud.column.total"),
+		BLOCKS("beaconbuddies.hud.column.blocks");
+
+		private final String key;
+
+		Column(String key) {
+			this.key = key;
+		}
+	}
 
 	@Override
 	public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
@@ -48,31 +64,40 @@ public class BuddiesHud implements HudElement {
 			return;
 		}
 		int top = config.hudPosition == BuddiesConfig.HudPosition.TOP_RIGHT ? topBelowEffects(client) : MARGIN;
-		drawPanel(graphics, client.font, BuddyList.sorted(client), MARGIN, graphics.guiWidth() - MARGIN, top, config);
+		drawTable(graphics, client.font, HudTable.rows(client), MARGIN, graphics.guiWidth() - MARGIN, top, config);
 	}
 
-	public static void drawPanel(GuiGraphics graphics, Font font, List<BuddyList.Entry> entries, int areaLeft, int areaRight, int top, BuddiesConfig config) {
-		List<BuddyList.Entry> shown = entries.subList(0, Math.min(entries.size(), config.maxRows));
-		int hidden = entries.size() - shown.size();
+	public static int drawTable(GuiGraphics graphics, Font font, List<HudTable.Row> rows, int areaLeft, int areaRight, int top, BuddiesConfig config) {
+		List<HudTable.Row> shown = rows.subList(0, Math.min(rows.size(), config.maxRows));
+		int hidden = rows.size() - shown.size();
+		List<Column> columns = columns(config);
 
 		Component title = Component.translatable("beaconbuddies.hud.title");
-		Component count = Component.literal(String.valueOf(entries.size()));
-		Component empty = Component.translatable("beaconbuddies.hud.empty");
+		Component count = Component.literal(String.valueOf(rows.stream().filter(HudTable.Row::buddy).count()));
+		Component player = Component.translatable("beaconbuddies.hud.column.player");
 		Component more = Component.translatable("beaconbuddies.hud.more", hidden);
 
 		int nameOffset = config.showHeads ? HEAD_SIZE + 4 : 0;
-		int nameWidth = 0;
-		int distanceWidth = 0;
-		for (BuddyList.Entry entry : shown) {
-			nameWidth = Math.max(nameWidth, font.width(entry.buddy().name()));
-			distanceWidth = Math.max(distanceWidth, font.width(distanceLabel(entry)));
+		int nameWidth = font.width(player) - nameOffset;
+		int[] widths = new int[columns.size()];
+		for (int c = 0; c < columns.size(); c++) {
+			widths[c] = font.width(Component.translatable(columns.get(c).key));
 		}
-		int contentWidth = shown.isEmpty() ? font.width(empty) : nameOffset + nameWidth + COLUMN_GAP + distanceWidth;
+		for (HudTable.Row row : shown) {
+			nameWidth = Math.max(nameWidth, font.width(row.name()));
+			for (int c = 0; c < columns.size(); c++) {
+				widths[c] = Math.max(widths[c], font.width(cell(row, columns.get(c))));
+			}
+		}
+		int contentWidth = nameOffset + nameWidth;
+		for (int w : widths) {
+			contentWidth += COLUMN_GAP + w;
+		}
 		int titleWidth = 10 + font.width(title) + COLUMN_GAP + font.width(count);
 		int width = Math.max(MIN_WIDTH, Math.max(contentWidth, titleWidth) + PADDING * 2);
 
-		int rows = Math.max(shown.size(), 1) + (hidden > 0 ? 1 : 0);
-		int height = TITLE_HEIGHT + rows * ROW_HEIGHT + 4;
+		int lines = 1 + shown.size() + (hidden > 0 ? 1 : 0);
+		int height = TITLE_HEIGHT + lines * ROW_HEIGHT + 4;
 		int left = switch (config.hudPosition) {
 			case TOP_LEFT -> areaLeft;
 			case TOP_CENTER -> (areaLeft + areaRight - width) / 2;
@@ -86,31 +111,47 @@ public class BuddiesHud implements HudElement {
 		graphics.renderOutline(left - 1, top - 1, width + 2, height + 2, BORDER);
 		graphics.hLine(left, right - 1, bodyTop, TITLE_HIGHLIGHT);
 
-		int y = bodyTop + 3;
-		if (shown.isEmpty()) {
-			graphics.drawString(font, empty, left + PADDING, y + 2, MUTED, true);
-			return;
+		int[] columnRight = new int[columns.size()];
+		int edge = right - PADDING;
+		for (int c = columns.size() - 1; c >= 0; c--) {
+			columnRight[c] = edge;
+			edge -= widths[c] + COLUMN_GAP;
 		}
+
+		int y = bodyTop + 1;
+		int textOffset = (ROW_HEIGHT - font.lineHeight) / 2 + 1;
+		graphics.fill(left, y, right, y + ROW_HEIGHT, HEADER_BG);
+		graphics.drawString(font, player, left + PADDING, y + textOffset, MUTED, true);
+		for (int c = 0; c < columns.size(); c++) {
+			Component label = Component.translatable(columns.get(c).key);
+			graphics.drawString(font, label, columnRight[c] - font.width(label), y + textOffset, MUTED, true);
+		}
+		y += ROW_HEIGHT + 2;
 
 		ClientPacketListener connection = Minecraft.getInstance().getConnection();
 		for (int i = 0; i < shown.size(); i++) {
-			BuddyList.Entry entry = shown.get(i);
+			HudTable.Row row = shown.get(i);
 			if (i % 2 == 1) {
 				graphics.fill(left, y, right, y + ROW_HEIGHT, ROW_STRIPE);
 			}
-			int x = left + PADDING;
-			int rowTextY = y + (ROW_HEIGHT - font.lineHeight) / 2 + 1;
-			if (config.showHeads) {
-				PlayerFaceRenderer.draw(graphics, skinOf(connection, entry.buddy().uuid()), x, y + (ROW_HEIGHT - HEAD_SIZE) / 2, HEAD_SIZE);
+			if (i > 0 && isOther(row) && !isOther(shown.get(i - 1))) {
+				graphics.hLine(left + PADDING, right - PADDING - 1, y, BORDER);
 			}
-			Component distance = distanceLabel(entry);
-			graphics.drawString(font, entry.buddy().name(), x + nameOffset, rowTextY, entry.otherDimension() ? MUTED : TEXT, true);
-			graphics.drawString(font, distance, right - PADDING - font.width(distance), rowTextY, distanceColor(entry, config), true);
+			int x = left + PADDING;
+			if (config.showHeads) {
+				PlayerFaceRenderer.draw(graphics, skinOf(connection, row.uuid()), x, y + (ROW_HEIGHT - HEAD_SIZE) / 2, HEAD_SIZE);
+			}
+			graphics.drawString(font, row.name(), x + nameOffset, y + textOffset, nameColor(row), true);
+			for (int c = 0; c < columns.size(); c++) {
+				String value = cell(row, columns.get(c));
+				graphics.drawString(font, value, columnRight[c] - font.width(value), y + textOffset, cellColor(row, columns.get(c), config), true);
+			}
 			y += ROW_HEIGHT;
 		}
 		if (hidden > 0) {
-			graphics.drawString(font, more, left + PADDING, y + (ROW_HEIGHT - font.lineHeight) / 2 + 1, MUTED, true);
+			graphics.drawString(font, more, left + PADDING, y + textOffset, MUTED, true);
 		}
+		return top + height + 1;
 	}
 
 	public static void drawTitleBar(GuiGraphics graphics, Font font, int left, int right, int top, Component title, Component trailing) {
@@ -120,6 +161,58 @@ public class BuddiesHud implements HudElement {
 		drawDiamond(graphics, left + PADDING + 2, top + TITLE_HEIGHT / 2);
 		graphics.drawString(font, title, left + PADDING + 8, textY, TEXT, true);
 		graphics.drawString(font, trailing, right - PADDING - font.width(trailing), textY, ACCENT, true);
+	}
+
+	private static List<Column> columns(BuddiesConfig config) {
+		List<Column> columns = new ArrayList<>();
+		columns.add(Column.DISTANCE);
+		if (config.showPlaytime) {
+			columns.add(Column.SESSION);
+			columns.add(Column.TOTAL);
+		}
+		if (config.showBlocks) {
+			columns.add(Column.BLOCKS);
+		}
+		return columns;
+	}
+
+	private static boolean isOther(HudTable.Row row) {
+		return !row.self() && !row.buddy();
+	}
+
+	private static String cell(HudTable.Row row, Column column) {
+		return switch (column) {
+			case DISTANCE -> {
+				if (!row.buddy()) {
+					yield "";
+				}
+				yield row.otherDimension()
+						? Component.translatable("beaconbuddies.hud.other_dimension").getString()
+						: Component.translatable("beaconbuddies.hud.distance", Math.round(row.distance())).getString();
+			}
+			case SESSION -> row.sessionSeconds() >= 0 ? PlaytimeList.format(row.sessionSeconds()) : "";
+			case TOTAL -> row.totalSeconds() >= 0 ? PlaytimeList.format(row.totalSeconds()) : "";
+			case BLOCKS -> row.placed() >= 0 ? HudTable.formatCount(row.placed()) : "";
+		};
+	}
+
+	private static int cellColor(HudTable.Row row, Column column, BuddiesConfig config) {
+		return switch (column) {
+			case DISTANCE -> distanceColor(row, config);
+			case SESSION -> ACCENT;
+			case TOTAL -> MUTED;
+			case BLOCKS -> TEXT;
+		};
+	}
+
+	private static int nameColor(HudTable.Row row) {
+		if (row.self()) {
+			return ACCENT;
+		}
+		if (row.buddy()) {
+			return row.otherDimension() ? MUTED : TEXT;
+		}
+		return OTHER;
 	}
 
 	private static int topBelowEffects(Minecraft client) {
@@ -143,23 +236,17 @@ public class BuddiesHud implements HudElement {
 		return beneficial ? EFFECT_ROW_HEIGHT + MARGIN : MARGIN;
 	}
 
-	private static Component distanceLabel(BuddyList.Entry entry) {
-		return entry.otherDimension()
-				? Component.translatable("beaconbuddies.hud.other_dimension")
-				: Component.translatable("beaconbuddies.hud.distance", Math.round(entry.distance()));
-	}
-
-	private static int distanceColor(BuddyList.Entry entry, BuddiesConfig config) {
-		if (entry.otherDimension()) {
+	private static int distanceColor(HudTable.Row row, BuddiesConfig config) {
+		if (row.otherDimension()) {
 			return MUTED;
 		}
 		if (!config.distanceColors) {
 			return TEXT;
 		}
-		if (entry.distance() < 50) {
+		if (row.distance() < 50) {
 			return NEAR;
 		}
-		return entry.distance() < 200 ? MID : FAR;
+		return row.distance() < 200 ? MID : FAR;
 	}
 
 	private static PlayerSkin skinOf(ClientPacketListener connection, UUID uuid) {

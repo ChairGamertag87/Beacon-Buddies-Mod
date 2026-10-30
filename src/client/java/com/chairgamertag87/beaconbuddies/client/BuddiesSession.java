@@ -1,14 +1,18 @@
 package com.chairgamertag87.beaconbuddies.client;
 
 import com.chairgamertag87.beaconbuddies.client.relay.Buddy;
+import com.chairgamertag87.beaconbuddies.client.relay.PlayerStat;
 import com.chairgamertag87.beaconbuddies.client.relay.RelayClient;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -19,6 +23,9 @@ import java.util.stream.Collectors;
 public final class BuddiesSession {
 	public static final String RELAY_URL = "wss://beaconbuddies.habibiserver.dev/beaconbuddies";
 	private static final int POS_INTERVAL_TICKS = 10;
+	private static final int PLAYERS_CHECK_TICKS = 20;
+	private static final int PLAYERS_RESEND_TICKS = 600;
+	private static final int MAX_REPORTED_PLAYERS = 500;
 
 	private static final RelayClient RELAY = new RelayClient(RELAY_URL, new RelayListener());
 
@@ -28,6 +35,12 @@ public final class BuddiesSession {
 	private static Map<UUID, Buddy> buddies = Map.of();
 	private static int tickCounter;
 	private static String lastDimension;
+	private static Map<UUID, PlayerStat> stats = Map.of();
+	private static long clockOffsetMs;
+	private static Map<UUID, String> lastPlayers;
+	private static int playersCheckCounter;
+	private static int playersResendCounter;
+	private static long lastSentPlaced = -1;
 
 	private BuddiesSession() {
 	}
@@ -41,7 +54,9 @@ public final class BuddiesSession {
 		wanted = false;
 		enabled = false;
 		buddies = Map.of();
+		stats = Map.of();
 		lastDimension = null;
+		BlockStats.reset();
 		RELAY.connect(client.player.getUUID(), client.getUser().getName(), normalizeAddress(server.ip));
 	}
 
@@ -50,6 +65,7 @@ public final class BuddiesSession {
 		wanted = false;
 		enabled = false;
 		buddies = Map.of();
+		stats = Map.of();
 		RELAY.disconnect();
 	}
 
@@ -65,6 +81,34 @@ public final class BuddiesSession {
 			lastDimension = dimension;
 			RELAY.sendPos(player.getX(), player.getY(), player.getZ(), dimension);
 		}
+		reportPlayers(client.getConnection());
+		BlockStats.tick(client.getConnection());
+		long placed = BlockStats.placed();
+		if (placed >= 0 && placed != lastSentPlaced) {
+			lastSentPlaced = placed;
+			RELAY.sendBlocks(placed);
+		}
+	}
+
+	private static void reportPlayers(ClientPacketListener connection) {
+		if (connection == null || ++playersCheckCounter < PLAYERS_CHECK_TICKS) {
+			return;
+		}
+		playersResendCounter += playersCheckCounter;
+		playersCheckCounter = 0;
+		Map<UUID, String> players = new LinkedHashMap<>();
+		for (PlayerInfo info : connection.getOnlinePlayers()) {
+			if (players.size() >= MAX_REPORTED_PLAYERS) {
+				break;
+			}
+			players.put(info.getProfile().id(), info.getProfile().name());
+		}
+		if (players.equals(lastPlayers) && playersResendCounter < PLAYERS_RESEND_TICKS) {
+			return;
+		}
+		lastPlayers = players;
+		playersResendCounter = 0;
+		RELAY.sendPlayers(players);
 	}
 
 	public static void request(boolean on) {
@@ -101,6 +145,14 @@ public final class BuddiesSession {
 		return buddies;
 	}
 
+	public static Map<UUID, PlayerStat> getStats() {
+		return stats;
+	}
+
+	public static long relayNowMs() {
+		return System.currentTimeMillis() + clockOffsetMs;
+	}
+
 	static String normalizeAddress(String ip) {
 		ServerAddress address = ServerAddress.parseString(ip.trim());
 		String host = address.getHost().toLowerCase(Locale.ROOT);
@@ -131,6 +183,7 @@ public final class BuddiesSession {
 			Minecraft.getInstance().execute(() -> {
 				enabled = false;
 				buddies = Map.of();
+				stats = Map.of();
 			});
 		}
 
@@ -143,8 +196,12 @@ public final class BuddiesSession {
 				}
 				enabled = on;
 				lastDimension = null;
+				lastPlayers = null;
+				lastSentPlaced = -1;
+				BlockStats.requestSoon();
 				if (!on) {
 					buddies = Map.of();
+					stats = Map.of();
 				}
 				message(client, Component.translatable(on ? "beaconbuddies.message.enabled" : "beaconbuddies.message.disabled"));
 			});
@@ -156,6 +213,18 @@ public final class BuddiesSession {
 			Minecraft.getInstance().execute(() -> {
 				if (enabled) {
 					buddies = next;
+				}
+			});
+		}
+
+		@Override
+		public void onStats(List<PlayerStat> list, long relayNow) {
+			long offset = relayNow - System.currentTimeMillis();
+			Map<UUID, PlayerStat> next = list.stream().collect(Collectors.toUnmodifiableMap(PlayerStat::uuid, Function.identity(), (a, b) -> b));
+			Minecraft.getInstance().execute(() -> {
+				if (enabled) {
+					clockOffsetMs = offset;
+					stats = next;
 				}
 			});
 		}
