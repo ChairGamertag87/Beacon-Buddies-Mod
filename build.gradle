@@ -22,6 +22,11 @@ loom {
 	}
 
 	runs {
+		def jdkTmp = file(".gradle/jdktmp")
+		jdkTmp.mkdirs()
+		configureEach {
+			vmArg "-Djdk.net.unixdomain.tmpdir=${jdkTmp.absolutePath}"
+		}
 		server {
 			runDir "run/server"
 		}

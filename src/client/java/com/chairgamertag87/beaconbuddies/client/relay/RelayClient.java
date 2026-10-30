@@ -39,7 +39,7 @@ public class RelayClient {
 
 	private final URI uri;
 	private final Listener listener;
-	private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+	private HttpClient http;
 	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
 		Thread thread = new Thread(r, "BeaconBuddies-Relay");
 		thread.setDaemon(true);
@@ -158,30 +158,40 @@ public class RelayClient {
 			return;
 		}
 		String hello = helloJson;
-		http.newWebSocketBuilder()
-				.connectTimeout(Duration.ofSeconds(10))
-				.buildAsync(uri, new SocketListener())
-				.whenComplete((ws, error) -> {
-					if (error != null) {
-						BeaconBuddies.LOGGER.warn("Relais injoignable : {}", error.getMessage());
-						scheduleRetry();
-						return;
-					}
-					synchronized (this) {
-						if (!wanted || !hello.equals(helloJson)) {
-							ws.sendClose(WebSocket.NORMAL_CLOSURE, "").exceptionally(e -> null);
-							return;
-						}
-						socket = ws;
-						open = true;
-						statsSupported = false;
-						blocksSupported = false;
-						retrySeconds = MIN_RETRY_SECONDS;
-						sendChain = CompletableFuture.completedFuture(null);
-					}
-					send(hello);
-					listener.onConnected();
-				});
+		CompletableFuture<WebSocket> connecting;
+		try {
+			if (http == null) {
+				http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+			}
+			connecting = http.newWebSocketBuilder()
+					.connectTimeout(Duration.ofSeconds(10))
+					.buildAsync(uri, new SocketListener());
+		} catch (RuntimeException e) {
+			BeaconBuddies.LOGGER.warn("Impossible d'ouvrir la connexion au relais : {}", e.getMessage());
+			scheduleRetry();
+			return;
+		}
+		connecting.whenComplete((ws, error) -> {
+			if (error != null) {
+				BeaconBuddies.LOGGER.warn("Relais injoignable : {}", error.getMessage());
+				scheduleRetry();
+				return;
+			}
+			synchronized (this) {
+				if (!wanted || !hello.equals(helloJson)) {
+					ws.sendClose(WebSocket.NORMAL_CLOSURE, "").exceptionally(e -> null);
+					return;
+				}
+				socket = ws;
+				open = true;
+				statsSupported = false;
+				blocksSupported = false;
+				retrySeconds = MIN_RETRY_SECONDS;
+				sendChain = CompletableFuture.completedFuture(null);
+			}
+			send(hello);
+			listener.onConnected();
+		});
 	}
 
 	private synchronized void scheduleRetry() {
