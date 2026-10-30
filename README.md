@@ -75,6 +75,11 @@ Un mod client ne peut pas parler aux autres clients à travers un serveur vanill
 
 Les positions restent en mémoire : elles ne sont ni enregistrées ni loggées, et disparaissent quand tu te déconnectes.
 
+### Pas de faux joueurs
+
+- **Compte vérifié** : à la connexion, le relais vérifie ton compte auprès de Mojang, comme un serveur premium. Le mod prouve qu'il est bien connecté au compte annoncé, sans jamais envoyer ton token au relais. Impossible donc d'inventer un joueur ou de se faire passer pour un autre. Les comptes crack ne sont pas acceptés.
+- **Joueurs du serveur uniquement** : le mod n'affiche un buddy, et ses messages du team chat, que s'il est dans la liste des joueurs (`Tab`) du serveur où tu es.
+
 ### Temps de jeu
 
 Quand le mode est actif, le mod signale au relais que tu es en ligne (toutes les 30 secondes). Le relais en déduit tes sessions et les enregistre :
@@ -107,7 +112,7 @@ Les messages passent par le relais, qui les transmet tout de suite sans les enre
 
 ### À savoir
 
-- **Pas d'authentification** : toute personne qui connaît l'adresse du relais et celle d'un serveur peut voir la position des joueurs qui y ont activé le mode et lire le team chat, voire écrire sous un autre pseudo. N'active le mode que si ça te va.
+- **Positions visibles** : toute personne avec un compte Minecraft qui connaît l'adresse d'un serveur peut voir la position des joueurs qui y ont activé le mode et lire le team chat, même sans être sur ce serveur. N'active le mode que si ça te va.
 - **Glowing limité aux joueurs proches** : le glowing ne s'affiche que sur les joueurs chargés autour de toi. Les buddies plus loin restent visibles dans le HUD, avec leur distance.
 - **Même adresse obligatoire** : deux joueurs qui rejoignent le même serveur avec deux adresses différentes (un domaine et son IP, par exemple) ne se verront pas.
 - **Règles des serveurs** : voir des joueurs à travers les murs peut être interdit sur certains serveurs, même entre amis. Vérifie les règles avant de l'utiliser.
