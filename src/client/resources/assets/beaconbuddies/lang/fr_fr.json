@@ -4,6 +4,7 @@
 	"beaconbuddies.message.enabled": "Beacon Buddies : mode activé",
 	"beaconbuddies.message.disabled": "Beacon Buddies : mode désactivé",
 	"beaconbuddies.message.offline": "Beacon Buddies : relais injoignable, nouvel essai en cours",
+	"beaconbuddies.message.auth_failed": "Beacon Buddies : compte Minecraft non vérifié, le mode est indisponible",
 	"beaconbuddies.message.unavailable": "Beacon Buddies : disponible uniquement en multijoueur",
 	"beaconbuddies.status.enabled": "Beacon Buddies : mode activé",
 	"beaconbuddies.status.disabled": "Beacon Buddies : mode désactivé",

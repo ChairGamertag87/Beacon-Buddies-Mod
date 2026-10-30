@@ -5,6 +5,8 @@ import com.chairgamertag87.beaconbuddies.client.relay.PlayerStat;
 import com.chairgamertag87.beaconbuddies.client.relay.RelayClient;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.User;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.player.LocalPlayer;
@@ -23,7 +25,7 @@ public final class BuddiesSession {
 	private static final int PLAYERS_CHECK_TICKS = 20;
 	private static final int PLAYERS_RESEND_TICKS = 600;
 
-	private static final RelayClient RELAY = new RelayClient(RELAY_URL, new RelayListener());
+	private static final RelayClient RELAY = new RelayClient(RELAY_URL, new RelayListener(), BuddiesSession::joinMojang);
 
 	private static boolean inGame;
 	private static boolean wanted;
@@ -110,7 +112,7 @@ public final class BuddiesSession {
 		}
 		wanted = on;
 		if (!RELAY.isOpen()) {
-			message(client, Component.translatable("beaconbuddies.message.offline"));
+			message(client, Component.translatable(RELAY.hasAuthFailed() ? "beaconbuddies.message.auth_failed" : "beaconbuddies.message.offline"));
 			return;
 		}
 		RELAY.sendState(on);
@@ -152,6 +154,17 @@ public final class BuddiesSession {
 
 	public static long relayNowMs() {
 		return System.currentTimeMillis() + clockOffsetMs;
+	}
+
+	private static void joinMojang(String challenge) throws Exception {
+		Minecraft client = Minecraft.getInstance();
+		User user = client.getUser();
+		client.services().sessionService().joinServer(user.getProfileId(), user.getAccessToken(), challenge);
+	}
+
+	private static boolean isOnServer(Minecraft client, UUID uuid, String name) {
+		ClientPacketListener connection = client.getConnection();
+		return connection != null && (connection.getPlayerInfo(uuid) != null || connection.getPlayerInfoIgnoreCase(name) != null);
 	}
 
 	static String normalizeAddress(String ip) {
@@ -211,18 +224,21 @@ public final class BuddiesSession {
 
 		@Override
 		public void onSync(List<Buddy> list) {
-			Map<UUID, Buddy> next = list.stream().collect(Collectors.toUnmodifiableMap(Buddy::uuid, Function.identity(), (a, b) -> b));
-			Minecraft.getInstance().execute(() -> {
+			Minecraft client = Minecraft.getInstance();
+			client.execute(() -> {
 				if (enabled) {
-					buddies = next;
+					buddies = list.stream()
+							.filter(buddy -> isOnServer(client, buddy.uuid(), buddy.name()))
+							.collect(Collectors.toUnmodifiableMap(Buddy::uuid, Function.identity(), (a, b) -> b));
 				}
 			});
 		}
 
 		@Override
 		public void onChat(UUID uuid, String name, String text) {
-			Minecraft.getInstance().execute(() -> {
-				if (enabled) {
+			Minecraft client = Minecraft.getInstance();
+			client.execute(() -> {
+				if (enabled && isOnServer(client, uuid, name)) {
 					TeamChat.receive(name, text);
 				}
 			});
