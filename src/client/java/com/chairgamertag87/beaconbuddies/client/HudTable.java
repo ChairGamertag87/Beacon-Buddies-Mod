@@ -53,6 +53,21 @@ public final class HudTable {
 	}
 
 	public static String formatCount(long count) {
-		return String.format(Locale.ROOT, "%,d", count).replace(',', ' ');
+		if (count < 1_000) {
+			return String.valueOf(count);
+		}
+		if (count < 1_000_000) {
+			return compact(count, 1_000, "k");
+		}
+		return compact(count, 1_000_000, "M");
+	}
+
+	private static String compact(long count, long unit, String suffix) {
+		long scaled = count / unit;
+		if (scaled >= 100) {
+			return scaled + suffix;
+		}
+		long tenths = count * 10 / unit % 10;
+		return tenths == 0 ? scaled + suffix : String.format(Locale.ROOT, "%d.%d%s", scaled, tenths, suffix);
 	}
 }

@@ -188,7 +188,7 @@ public class BuddiesHud implements HudElement {
 				}
 				yield row.otherDimension()
 						? Component.translatable("beaconbuddies.hud.other_dimension").getString()
-						: Component.translatable("beaconbuddies.hud.distance", Math.round(row.distance())).getString();
+						: Component.translatable("beaconbuddies.hud.distance", HudTable.formatCount(Math.round(row.distance()))).getString();
 			}
 			case SESSION -> row.sessionSeconds() >= 0 ? PlaytimeList.format(row.sessionSeconds()) : "";
 			case TOTAL -> row.totalSeconds() >= 0 ? PlaytimeList.format(row.totalSeconds()) : "";
