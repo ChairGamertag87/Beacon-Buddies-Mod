@@ -12,6 +12,7 @@ import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,6 +21,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixin extends Screen {
@@ -55,7 +57,13 @@ public abstract class ChatScreenMixin extends Screen {
 	private void beaconbuddies$select(boolean team) {
 		TeamChat.selectTeamTab(team);
 		beaconbuddies$applyMaxLength();
-		setFocused(input);
+	}
+
+	@Inject(method = "mouseClicked", at = @At("RETURN"))
+	private void beaconbuddies$keepInputFocused(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+		if (getFocused() instanceof BuddiesButton) {
+			setFocused(input);
+		}
 	}
 
 	@Unique
