@@ -99,6 +99,8 @@ Quand le mode est actif, deux onglets apparaissent au-dessus de la barre de chat
 - **Global** : le chat normal du serveur.
 - **Team** : le team chat. Ce que tu tapes part aux autres joueurs qui ont le mode actif, sans passer par le serveur. Les commandes (`/...`) partent toujours au serveur.
 
+![L'onglet Team sélectionné au-dessus de la barre de chat, avec deux messages de joueurs qui ont le mode actif](docs/chat.webp)
+
 Le chat affiché à l'écran, même fermé, est celui de l'onglet choisi. L'autre onglet affiche le nombre de messages non lus, par exemple "Team (3)".
 
 Les messages passent par le relais, qui les transmet tout de suite sans les enregistrer. Pas d'historique : en activant le mode, tu ne vois que les messages envoyés à partir de là. Le relais limite à 5 messages toutes les 5 secondes.
