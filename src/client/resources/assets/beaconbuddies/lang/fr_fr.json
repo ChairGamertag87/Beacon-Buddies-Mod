@@ -63,5 +63,5 @@
 	"beaconbuddies.hud.column.blocks": "Blocs",
 	"beaconbuddies.chat.global": "Global",
 	"beaconbuddies.chat.team": "Team",
-	"beaconbuddies.chat.prefix": "[Team]"
+	"beaconbuddies.chat.unread": "%s (%s)"
 }

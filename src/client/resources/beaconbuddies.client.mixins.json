@@ -3,9 +3,11 @@
 	"package": "com.chairgamertag87.beaconbuddies.client.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
+		"ChatComponentMixin",
 		"ChatScreenMixin",
 		"ClientPacketListenerMixin",
 		"EntityRendererMixin",
+		"GuiMixin",
 		"MinecraftMixin"
 	],
 	"injectors": {

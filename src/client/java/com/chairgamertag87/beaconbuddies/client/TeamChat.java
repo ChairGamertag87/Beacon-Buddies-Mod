@@ -2,7 +2,6 @@ package com.chairgamertag87.beaconbuddies.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
-import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -15,6 +14,8 @@ public final class TeamChat {
 
 	private static ChatComponent component;
 	private static boolean teamTab;
+	private static int unread;
+	private static int globalUnread;
 
 	private TeamChat() {
 	}
@@ -33,16 +34,21 @@ public final class TeamChat {
 	public static void selectTeamTab(boolean team) {
 		teamTab = team;
 		if (isTeamTab()) {
+			unread = 0;
 			component().rescaleChat();
+		} else {
+			globalUnread = 0;
 		}
 	}
 
 	public static void leaveTeamTab() {
 		teamTab = false;
+		unread = 0;
+		globalUnread = 0;
 	}
 
 	public static ChatComponent chatFor(ChatComponent vanilla) {
-		return isTeamTab() && Minecraft.getInstance().screen instanceof ChatScreen ? component() : vanilla;
+		return isTeamTab() ? component() : vanilla;
 	}
 
 	public static String normalize(String text) {
@@ -63,16 +69,32 @@ public final class TeamChat {
 			return;
 		}
 		MutableComponent line = Component.empty()
-				.append(Component.translatable("beaconbuddies.chat.prefix").withStyle(Style.EMPTY.withColor(BuddiesHud.ACCENT & 0xFFFFFF)))
-				.append(" ")
-				.append(Component.literal(name).withStyle(Style.EMPTY.withColor(BuddiesHud.TEXT & 0xFFFFFF)))
+				.append(Component.literal(name).withStyle(Style.EMPTY.withColor(BuddiesHud.ACCENT & 0xFFFFFF)))
 				.append(Component.literal(" : " + clean));
-		Minecraft.getInstance().gui.getChat().addMessage(line);
 		component().addMessage(line);
+		if (!isTeamTab()) {
+			unread++;
+		}
+	}
+
+	public static int unread() {
+		return unread;
+	}
+
+	public static int globalUnread() {
+		return globalUnread;
+	}
+
+	public static void onMessageAdded(ChatComponent target) {
+		if (target != component && isTeamTab()) {
+			globalUnread++;
+		}
 	}
 
 	public static void reset() {
 		teamTab = false;
+		unread = 0;
+		globalUnread = 0;
 		if (component != null) {
 			component.clearMessages(false);
 		}

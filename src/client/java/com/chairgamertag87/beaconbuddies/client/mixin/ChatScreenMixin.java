@@ -47,10 +47,26 @@ public abstract class ChatScreenMixin extends Screen {
 			TeamChat.component().rescaleChat();
 		}
 		int y = height - 14 - TAB_HEIGHT - 1;
-		addRenderableWidget(new BuddiesButton(2, y, TAB_WIDTH, TAB_HEIGHT, () -> Component.translatable("beaconbuddies.chat.global"),
+		addRenderableWidget(new BuddiesButton(2, y, TAB_WIDTH, TAB_HEIGHT, ChatScreenMixin::beaconbuddies$globalLabel,
 				() -> TeamChat.isTeamTab() ? BuddiesHud.MUTED : BuddiesHud.ACCENT, null, () -> beaconbuddies$select(false)));
-		addRenderableWidget(new BuddiesButton(2 + TAB_WIDTH + 2, y, TAB_WIDTH, TAB_HEIGHT, () -> Component.translatable("beaconbuddies.chat.team"),
+		addRenderableWidget(new BuddiesButton(2 + TAB_WIDTH + 2, y, TAB_WIDTH, TAB_HEIGHT, ChatScreenMixin::beaconbuddies$teamLabel,
 				() -> TeamChat.isTeamTab() ? BuddiesHud.ACCENT : BuddiesHud.MUTED, null, () -> beaconbuddies$select(true)));
+	}
+
+	@Unique
+	private static Component beaconbuddies$globalLabel() {
+		return beaconbuddies$tabLabel("beaconbuddies.chat.global", TeamChat.globalUnread());
+	}
+
+	@Unique
+	private static Component beaconbuddies$teamLabel() {
+		return beaconbuddies$tabLabel("beaconbuddies.chat.team", TeamChat.unread());
+	}
+
+	@Unique
+	private static Component beaconbuddies$tabLabel(String key, int unread) {
+		Component name = Component.translatable(key);
+		return unread > 0 ? Component.translatable("beaconbuddies.chat.unread", name, unread > 99 ? "99+" : String.valueOf(unread)) : name;
 	}
 
 	@Unique
