@@ -39,8 +39,13 @@ public class RelayClient {
 		void onChat(UUID uuid, String name, String text);
 	}
 
+	public interface Authenticator {
+		void join(String challenge) throws Exception;
+	}
+
 	private final URI uri;
 	private final Listener listener;
+	private final Authenticator authenticator;
 	private HttpClient http;
 	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
 		Thread thread = new Thread(r, "BeaconBuddies-Relay");
@@ -51,6 +56,8 @@ public class RelayClient {
 	private String helloJson;
 	private WebSocket socket;
 	private boolean open;
+	private boolean ready;
+	private volatile boolean authFailed;
 	private volatile boolean statsSupported;
 	private volatile boolean blocksSupported;
 	private volatile boolean chatSupported;
@@ -58,9 +65,10 @@ public class RelayClient {
 	private long retrySeconds = MIN_RETRY_SECONDS;
 	private CompletableFuture<?> sendChain = CompletableFuture.completedFuture(null);
 
-	public RelayClient(String url, Listener listener) {
+	public RelayClient(String url, Listener listener, Authenticator authenticator) {
 		this.uri = URI.create(url);
 		this.listener = listener;
+		this.authenticator = authenticator;
 	}
 
 	public synchronized void connect(UUID uuid, String name, String server) {
@@ -72,6 +80,7 @@ public class RelayClient {
 		hello.addProperty("server", server);
 		this.helloJson = hello.toString();
 		this.wanted = true;
+		this.authFailed = false;
 		this.retrySeconds = MIN_RETRY_SECONDS;
 		openSocket();
 	}
@@ -80,18 +89,23 @@ public class RelayClient {
 		wanted = false;
 		WebSocket current = socket;
 		socket = null;
-		boolean wasOpen = open;
+		boolean wasReady = ready;
 		open = false;
+		ready = false;
 		if (current != null) {
 			current.sendClose(WebSocket.NORMAL_CLOSURE, "").exceptionally(e -> null);
 		}
-		if (wasOpen) {
+		if (wasReady) {
 			listener.onDisconnected();
 		}
 	}
 
 	public synchronized boolean isOpen() {
-		return open;
+		return open && ready;
+	}
+
+	public boolean hasAuthFailed() {
+		return authFailed;
 	}
 
 	public boolean supportsStats() {
@@ -201,6 +215,7 @@ public class RelayClient {
 				}
 				socket = ws;
 				open = true;
+				ready = false;
 				statsSupported = false;
 				blocksSupported = false;
 				chatSupported = false;
@@ -208,7 +223,6 @@ public class RelayClient {
 				sendChain = CompletableFuture.completedFuture(null);
 			}
 			send(hello);
-			listener.onConnected();
 		});
 	}
 
@@ -222,14 +236,19 @@ public class RelayClient {
 	}
 
 	private void onSocketClosed(WebSocket ws) {
+		boolean wasReady;
 		synchronized (this) {
 			if (ws != socket) {
 				return;
 			}
 			socket = null;
 			open = false;
+			wasReady = ready;
+			ready = false;
 		}
-		listener.onDisconnected();
+		if (wasReady) {
+			listener.onDisconnected();
+		}
 		scheduleRetry();
 	}
 
@@ -247,7 +266,13 @@ public class RelayClient {
 				statsSupported = hasFeature(msg, "stats");
 				blocksSupported = hasFeature(msg, "blocks");
 				chatSupported = hasFeature(msg, "chat");
+				if (msg.has("challenge")) {
+					authenticate(msg.get("challenge").getAsString());
+				} else {
+					markReady();
+				}
 			}
+			case "authenticated" -> markReady();
 			case "state" -> listener.onState(msg.get("enabled").getAsBoolean());
 			case "sync" -> listener.onSync(parseBuddies(msg.getAsJsonArray("players")));
 			case "stats" -> listener.onStats(parseStats(msg.getAsJsonArray("players")), msg.get("now").getAsLong());
@@ -256,6 +281,41 @@ public class RelayClient {
 			default -> {
 			}
 		}
+	}
+
+	private void authenticate(String challenge) {
+		WebSocket target;
+		synchronized (this) {
+			target = socket;
+		}
+		scheduler.execute(() -> {
+			try {
+				authenticator.join(challenge);
+			} catch (Exception e) {
+				authFailed = true;
+				BeaconBuddies.LOGGER.warn("Vérification du compte Minecraft impossible : {}", e.getMessage());
+				return;
+			}
+			authFailed = false;
+			synchronized (this) {
+				if (target != socket) {
+					return;
+				}
+			}
+			JsonObject msg = new JsonObject();
+			msg.addProperty("type", "auth");
+			send(msg.toString());
+		});
+	}
+
+	private void markReady() {
+		synchronized (this) {
+			if (!open || ready) {
+				return;
+			}
+			ready = true;
+		}
+		listener.onConnected();
 	}
 
 	private static List<Buddy> parseBuddies(JsonArray players) {
