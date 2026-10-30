@@ -165,7 +165,7 @@ public final class BuddiesSession {
 
 	private static void message(Minecraft client, Component text) {
 		if (client.player != null) {
-			client.player.displayClientMessage(text, true);
+			client.player.sendOverlayMessage(text);
 		}
 	}
 

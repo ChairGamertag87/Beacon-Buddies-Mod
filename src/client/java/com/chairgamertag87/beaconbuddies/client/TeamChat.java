@@ -71,7 +71,7 @@ public final class TeamChat {
 		MutableComponent line = Component.empty()
 				.append(Component.literal(name).withStyle(Style.EMPTY.withColor(BuddiesHud.ACCENT & 0xFFFFFF)))
 				.append(Component.literal(" : " + clean));
-		component().addMessage(line);
+		component().addClientSystemMessage(line);
 		if (!isTeamTab()) {
 			unread++;
 		}

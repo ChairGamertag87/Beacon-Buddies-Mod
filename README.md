@@ -1,6 +1,6 @@
 # Beacon Buddies
 
-Mod Fabric **client** pour Minecraft **1.21.11**. Active le mode, et tu vois en glowing les autres joueurs du serveur qui l'ont activé aussi. Un tableau en haut de l'écran affiche leur distance, leur temps de jeu et leurs blocs posés.
+Mod Fabric **client** pour Minecraft **26.3**. Active le mode, et tu vois en glowing les autres joueurs du serveur qui l'ont activé aussi. Un tableau en haut de l'écran affiche leur distance, leur temps de jeu et leurs blocs posés.
 
 Il marche sur n'importe quel serveur : rien à installer côté serveur, tout passe par un petit relais WebSocket.
 
@@ -24,7 +24,7 @@ Il marche sur n'importe quel serveur : rien à installer côté serveur, tout pa
 
 ## Installation
 
-1. Installe [Fabric Loader](https://fabricmc.net/use/) 0.20.1 ou plus récent pour Minecraft 1.21.11.
+1. Installe [Fabric Loader](https://fabricmc.net/use/) 0.20.1 ou plus récent pour Minecraft 26.3.
 2. Mets [Fabric API](https://modrinth.com/mod/fabric-api) dans ton dossier `mods`.
 3. Mets le `.jar` de Beacon Buddies dans ton dossier `mods`.
 
@@ -112,7 +112,7 @@ Les messages passent par le relais, qui les transmet tout de suite sans les enre
 
 ## Compiler depuis les sources
 
-Prérequis : un JDK 21. Gradle télécharge lui-même un JDK 25 pour son daemon (exigé par Loom 1.19), le mod reste compilé en Java 21.
+Prérequis : un JDK 25.
 
 ```bash
 ./gradlew build
