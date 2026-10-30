@@ -35,6 +35,8 @@ public class RelayClient {
 		void onSync(List<Buddy> buddies);
 
 		void onStats(List<PlayerStat> stats, long relayNow);
+
+		void onChat(UUID uuid, String name, String text);
 	}
 
 	private final URI uri;
@@ -51,6 +53,7 @@ public class RelayClient {
 	private boolean open;
 	private volatile boolean statsSupported;
 	private volatile boolean blocksSupported;
+	private volatile boolean chatSupported;
 	private boolean wanted;
 	private long retrySeconds = MIN_RETRY_SECONDS;
 	private CompletableFuture<?> sendChain = CompletableFuture.completedFuture(null);
@@ -99,6 +102,10 @@ public class RelayClient {
 		return blocksSupported;
 	}
 
+	public boolean supportsChat() {
+		return chatSupported;
+	}
+
 	public void sendState(boolean enabled) {
 		JsonObject msg = new JsonObject();
 		msg.addProperty("type", "state");
@@ -140,6 +147,16 @@ public class RelayClient {
 		JsonObject msg = new JsonObject();
 		msg.addProperty("type", "blocks");
 		msg.addProperty("placed", placed);
+		send(msg.toString());
+	}
+
+	public void sendChat(String text) {
+		if (!chatSupported) {
+			return;
+		}
+		JsonObject msg = new JsonObject();
+		msg.addProperty("type", "chat");
+		msg.addProperty("text", text);
 		send(msg.toString());
 	}
 
@@ -186,6 +203,7 @@ public class RelayClient {
 				open = true;
 				statsSupported = false;
 				blocksSupported = false;
+				chatSupported = false;
 				retrySeconds = MIN_RETRY_SECONDS;
 				sendChain = CompletableFuture.completedFuture(null);
 			}
@@ -228,10 +246,12 @@ public class RelayClient {
 			case "welcome" -> {
 				statsSupported = hasFeature(msg, "stats");
 				blocksSupported = hasFeature(msg, "blocks");
+				chatSupported = hasFeature(msg, "chat");
 			}
 			case "state" -> listener.onState(msg.get("enabled").getAsBoolean());
 			case "sync" -> listener.onSync(parseBuddies(msg.getAsJsonArray("players")));
 			case "stats" -> listener.onStats(parseStats(msg.getAsJsonArray("players")), msg.get("now").getAsLong());
+			case "chat" -> parseChat(msg);
 			case "error" -> BeaconBuddies.LOGGER.warn("Erreur du relais : {}", msg.get("message"));
 			default -> {
 			}
@@ -259,6 +279,14 @@ public class RelayClient {
 			}
 		}
 		return buddies;
+	}
+
+	private void parseChat(JsonObject msg) {
+		try {
+			listener.onChat(UUID.fromString(msg.get("uuid").getAsString()), msg.get("name").getAsString(), msg.get("text").getAsString());
+		} catch (RuntimeException e) {
+			BeaconBuddies.LOGGER.warn("Message de chat invalide ignoré");
+		}
 	}
 
 	private static boolean hasFeature(JsonObject welcome, String feature) {

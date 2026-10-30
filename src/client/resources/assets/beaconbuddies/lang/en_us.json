@@ -60,5 +60,8 @@
 	"beaconbuddies.hud.column.distance": "Dist.",
 	"beaconbuddies.hud.column.session": "Session",
 	"beaconbuddies.hud.column.total": "Total",
-	"beaconbuddies.hud.column.blocks": "Blocks"
+	"beaconbuddies.hud.column.blocks": "Blocks",
+	"beaconbuddies.chat.global": "Global",
+	"beaconbuddies.chat.team": "Team",
+	"beaconbuddies.chat.prefix": "[Team]"
 }

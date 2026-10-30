@@ -62,6 +62,7 @@ public final class BuddiesSession {
 		enabled = false;
 		buddies = Map.of();
 		stats = Map.of();
+		TeamChat.reset();
 		RELAY.disconnect();
 	}
 
@@ -131,6 +132,16 @@ public final class BuddiesSession {
 		return RELAY.isOpen();
 	}
 
+	public static boolean isChatAvailable() {
+		return enabled && RELAY.supportsChat();
+	}
+
+	public static void sendChat(String text) {
+		if (isChatAvailable()) {
+			RELAY.sendChat(text);
+		}
+	}
+
 	public static Map<UUID, Buddy> getBuddies() {
 		return buddies;
 	}
@@ -192,6 +203,7 @@ public final class BuddiesSession {
 				if (!on) {
 					buddies = Map.of();
 					stats = Map.of();
+					TeamChat.leaveTeamTab();
 				}
 				message(client, Component.translatable(on ? "beaconbuddies.message.enabled" : "beaconbuddies.message.disabled"));
 			});
@@ -203,6 +215,15 @@ public final class BuddiesSession {
 			Minecraft.getInstance().execute(() -> {
 				if (enabled) {
 					buddies = next;
+				}
+			});
+		}
+
+		@Override
+		public void onChat(UUID uuid, String name, String text) {
+			Minecraft.getInstance().execute(() -> {
+				if (enabled) {
+					TeamChat.receive(name, text);
 				}
 			});
 		}

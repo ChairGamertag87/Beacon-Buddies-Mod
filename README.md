@@ -18,6 +18,7 @@ Il marche sur n'importe quel serveur : rien à installer côté serveur, tout pa
 - **Distance** (colonne "Dist.") : pour chaque buddy, en vert à moins de 50 blocs, en jaune à moins de 200, en rouge au-delà. "Autre dim." en gris pour ceux qui ne sont pas dans ta dimension.
 - **Temps de jeu** (colonnes "Session" et "Total") : pour toi et tes buddies. La session en cours en turquoise, le temps de jeu total sur ce serveur en gris.
 - **Blocs posés** (colonne "Blocs") : ton nombre de blocs posés sur le serveur et celui de tes buddies.
+- **Team chat** : un chat à part entre tous les joueurs du serveur qui ont le mode actif, avec des messages jusqu'à 2048 caractères. Le serveur Minecraft ne voit pas ces messages.
 - **Menu de paramètres** avec aperçu en direct du HUD.
 - Le mode repasse sur off à chaque connexion à un serveur.
 
@@ -91,9 +92,18 @@ Le mod ne compte rien lui-même : il demande au serveur tes statistiques vanilla
 
 Ton total est envoyé au relais, qui le transmet à tes buddies avec ta position. Il reste en mémoire et n'est pas enregistré. On ne voit que les blocs des joueurs qui ont le mod et le mode actif : un client ne peut pas savoir qui a posé un bloc.
 
+### Team chat
+
+Quand le mode est actif, deux onglets apparaissent au-dessus de la barre de chat (`T`) :
+
+- **Global** : le chat normal du serveur. Les messages du team chat y apparaissent aussi, avec le préfixe `[Team]`.
+- **Team** : n'affiche que le team chat, et ce que tu tapes part aux autres joueurs qui ont le mode actif, sans passer par le serveur. Les commandes (`/...`) partent toujours au serveur.
+
+Les messages passent par le relais, qui les transmet tout de suite sans les enregistrer. Pas d'historique : en activant le mode, tu ne vois que les messages envoyés à partir de là. Le relais limite à 5 messages toutes les 5 secondes.
+
 ### À savoir
 
-- **Pas d'authentification** : toute personne qui connaît l'adresse du relais et celle d'un serveur peut voir la position des joueurs qui y ont activé le mode. N'active le mode que si ça te va.
+- **Pas d'authentification** : toute personne qui connaît l'adresse du relais et celle d'un serveur peut voir la position des joueurs qui y ont activé le mode et lire le team chat, voire écrire sous un autre pseudo. N'active le mode que si ça te va.
 - **Glowing limité aux joueurs proches** : le glowing ne s'affiche que sur les joueurs chargés autour de toi. Les buddies plus loin restent visibles dans le HUD, avec leur distance.
 - **Même adresse obligatoire** : deux joueurs qui rejoignent le même serveur avec deux adresses différentes (un domaine et son IP, par exemple) ne se verront pas.
 - **Règles des serveurs** : voir des joueurs à travers les murs peut être interdit sur certains serveurs, même entre amis. Vérifie les règles avant de l'utiliser.
