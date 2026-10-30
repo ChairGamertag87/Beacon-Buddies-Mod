@@ -1,13 +1,13 @@
 {
 	"required": true,
 	"package": "com.chairgamertag87.beaconbuddies.client.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"ChatComponentMixin",
 		"ChatScreenMixin",
 		"ClientPacketListenerMixin",
 		"EntityRendererMixin",
-		"GuiMixin",
+		"HudMixin",
 		"MinecraftMixin"
 	],
 	"injectors": {

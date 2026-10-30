@@ -5,7 +5,7 @@ import com.chairgamertag87.beaconbuddies.client.BuddiesHud;
 import com.chairgamertag87.beaconbuddies.client.BuddiesSession;
 import com.chairgamertag87.beaconbuddies.client.HudTable;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -98,8 +98,8 @@ public class BuddiesSettingsScreen extends Screen {
 		y += ROW_STEP;
 
 		addRow("beaconbuddies.setting.glow_color", y, new BuddiesButton(controlX, y, CONTROL_WIDTH, CONTROL_HEIGHT,
-				() -> Component.translatable("beaconbuddies.color." + config.glowFormatting().getName()),
-				() -> BuddiesHud.TEXT, () -> config.glowFormatting().getColor(), config::cycleGlowColor));
+				() -> Component.translatable("beaconbuddies.color." + config.glowTeamColor().getSerializedName()),
+				() -> BuddiesHud.TEXT, () -> config.glowTeamColor().rgb(), config::cycleGlowColor));
 
 		int doneY = panelTop + panelHeight - PAD - CONTROL_HEIGHT;
 		addRenderableWidget(new BuddiesButton(panelLeft + panelWidth - PAD - CONTROL_WIDTH, doneY, CONTROL_WIDTH, CONTROL_HEIGHT,
@@ -128,17 +128,17 @@ public class BuddiesSettingsScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 		int right = panelLeft + panelWidth;
 		BuddiesHud.drawTitleBar(graphics, font, panelLeft, right, panelTop, Component.translatable("beaconbuddies.hud.title"), title);
 		graphics.fill(panelLeft, panelTop + BuddiesHud.TITLE_HEIGHT, right, panelTop + panelHeight, PANEL_BG);
-		graphics.renderOutline(panelLeft - 1, panelTop - 1, panelWidth + 2, panelHeight + 2, BuddiesHud.BORDER);
+		graphics.outline(panelLeft - 1, panelTop - 1, panelWidth + 2, panelHeight + 2, BuddiesHud.BORDER);
 
 		int sectionY = panelTop + BuddiesHud.TITLE_HEIGHT + PAD;
 		int settingsLeft = panelLeft + PAD;
 		drawSection(graphics, Component.translatable("beaconbuddies.screen.settings"), settingsLeft, settingsLeft + SETTINGS_WIDTH, sectionY);
 		for (Row row : rows) {
-			graphics.drawString(font, row.label(), settingsLeft, row.y() + (CONTROL_HEIGHT - font.lineHeight) / 2 + 1, BuddiesHud.TEXT, true);
+			graphics.text(font, row.label(), settingsLeft, row.y() + (CONTROL_HEIGHT - font.lineHeight) / 2 + 1, BuddiesHud.TEXT, true);
 		}
 
 		if (showPreview) {
@@ -156,16 +156,16 @@ public class BuddiesSettingsScreen extends Screen {
 			graphics.disableScissor();
 		}
 
-		super.render(graphics, mouseX, mouseY, partialTick);
+		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 	}
 
-	private void drawSection(GuiGraphics graphics, Component label, int left, int right, int y) {
+	private void drawSection(GuiGraphicsExtractor graphics, Component label, int left, int right, int y) {
 		int labelWidth = font.width(label);
 		int center = (left + right) / 2;
 		int lineY = y + font.lineHeight / 2;
-		graphics.hLine(left, center - labelWidth / 2 - 5, lineY, SECTION_LINE);
-		graphics.hLine(center + labelWidth / 2 + 4, right - 1, lineY, SECTION_LINE);
-		graphics.drawCenteredString(font, label, center, y, BuddiesHud.MUTED);
+		graphics.horizontalLine(left, center - labelWidth / 2 - 5, lineY, SECTION_LINE);
+		graphics.horizontalLine(center + labelWidth / 2 + 4, right - 1, lineY, SECTION_LINE);
+		graphics.centeredText(font, label, center, y, BuddiesHud.MUTED);
 	}
 
 	@Override
@@ -175,7 +175,7 @@ public class BuddiesSettingsScreen extends Screen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

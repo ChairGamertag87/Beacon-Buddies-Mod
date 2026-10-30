@@ -7,11 +7,11 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
@@ -19,8 +19,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-
-import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
@@ -35,19 +33,19 @@ public class BeaconBuddiesClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		BuddiesConfig.load();
 
-		menuKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-				"key.beaconbuddies.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, KEY_CATEGORY));
-		toggleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-				"key.beaconbuddies.toggle", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_J, KEY_CATEGORY));
-		hudKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-				"key.beaconbuddies.hud", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, KEY_CATEGORY));
+		menuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.beaconbuddies.menu", InputConstants.Type.KEYSYM, InputConstants.KEY_G, KEY_CATEGORY));
+		toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.beaconbuddies.toggle", InputConstants.Type.KEYSYM, InputConstants.KEY_J, KEY_CATEGORY));
+		hudKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.beaconbuddies.hud", InputConstants.Type.KEYSYM, InputConstants.KEY_H, KEY_CATEGORY));
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> BuddiesSession.onJoin(client));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> BuddiesSession.onDisconnect());
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (menuKey.consumeClick()) {
-				client.setScreen(new BuddiesSettingsScreen(client.screen));
+				client.gui.setScreen(new BuddiesSettingsScreen(client.gui.screen()));
 			}
 			while (toggleKey.consumeClick()) {
 				BuddiesSession.toggle();
@@ -57,7 +55,7 @@ public class BeaconBuddiesClient implements ClientModInitializer {
 				config.hudVisible = !config.hudVisible;
 				BuddiesConfig.save();
 				if (client.player != null) {
-					client.player.displayClientMessage(Component.translatable(config.hudVisible ? "beaconbuddies.message.hud_shown" : "beaconbuddies.message.hud_hidden"), true);
+					client.player.sendOverlayMessage(Component.translatable(config.hudVisible ? "beaconbuddies.message.hud_shown" : "beaconbuddies.message.hud_hidden"));
 				}
 			}
 			BuddiesSession.tick(client);
@@ -69,12 +67,12 @@ public class BeaconBuddiesClient implements ClientModInitializer {
 	}
 
 	private static void registerCommand(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-		dispatcher.register(ClientCommandManager.literal("buddies")
+		dispatcher.register(ClientCommands.literal("buddies")
 				.executes(BeaconBuddiesClient::status)
-				.then(ClientCommandManager.literal("on").executes(ctx -> run(() -> BuddiesSession.request(true))))
-				.then(ClientCommandManager.literal("off").executes(ctx -> run(() -> BuddiesSession.request(false))))
-				.then(ClientCommandManager.literal("toggle").executes(ctx -> run(BuddiesSession::toggle)))
-				.then(ClientCommandManager.literal("list").executes(BeaconBuddiesClient::list)));
+				.then(ClientCommands.literal("on").executes(ctx -> run(() -> BuddiesSession.request(true))))
+				.then(ClientCommands.literal("off").executes(ctx -> run(() -> BuddiesSession.request(false))))
+				.then(ClientCommands.literal("toggle").executes(ctx -> run(BuddiesSession::toggle)))
+				.then(ClientCommands.literal("list").executes(BeaconBuddiesClient::list)));
 	}
 
 	private static int run(Runnable action) {

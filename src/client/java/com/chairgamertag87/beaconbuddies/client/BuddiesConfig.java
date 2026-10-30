@@ -7,7 +7,7 @@ import com.google.gson.JsonParseException;
 
 import net.fabricmc.loader.api.FabricLoader;
 
-import net.minecraft.ChatFormatting;
+import net.minecraft.world.scores.TeamColor;
 import net.minecraft.util.Mth;
 
 import java.io.IOException;
@@ -15,14 +15,13 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
 public final class BuddiesConfig {
 	public static final int MIN_ROWS = 3;
 	public static final int MAX_ROWS = 15;
-	public static final List<ChatFormatting> GLOW_COLORS = Arrays.stream(ChatFormatting.values()).filter(ChatFormatting::isColor).toList();
+	public static final List<TeamColor> GLOW_COLORS = TeamColor.VALUES;
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(BeaconBuddies.MOD_ID + ".json");
@@ -49,20 +48,20 @@ public final class BuddiesConfig {
 	public boolean showHeads = true;
 	public boolean showPlaytime = true;
 	public boolean showBlocks = true;
-	public String glowColor = ChatFormatting.WHITE.getName();
+	public String glowColor = TeamColor.WHITE.getSerializedName();
 
 	public static BuddiesConfig get() {
 		return instance;
 	}
 
-	public ChatFormatting glowFormatting() {
-		ChatFormatting formatting = ChatFormatting.getByName(glowColor);
-		return formatting != null && formatting.isColor() ? formatting : ChatFormatting.WHITE;
+	public TeamColor glowTeamColor() {
+		TeamColor color = TeamColor.byName(glowColor);
+		return color != null ? color : TeamColor.WHITE;
 	}
 
 	public void cycleGlowColor() {
-		int index = GLOW_COLORS.indexOf(glowFormatting());
-		glowColor = GLOW_COLORS.get((index + 1) % GLOW_COLORS.size()).getName();
+		int index = GLOW_COLORS.indexOf(glowTeamColor());
+		glowColor = GLOW_COLORS.get((index + 1) % GLOW_COLORS.size()).getSerializedName();
 	}
 
 	public static void load() {
@@ -96,6 +95,6 @@ public final class BuddiesConfig {
 			hudPosition = HudPosition.TOP_RIGHT;
 		}
 		maxRows = Mth.clamp(maxRows, MIN_ROWS, MAX_ROWS);
-		glowColor = glowFormatting().getName();
+		glowColor = glowTeamColor().getSerializedName();
 	}
 }

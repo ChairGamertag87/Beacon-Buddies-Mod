@@ -15,7 +15,6 @@ public final class BuddyGlow {
 	}
 
 	public static int color() {
-		Integer color = BuddiesConfig.get().glowFormatting().getColor();
-		return color != null ? color : 0xFFFFFF;
+		return BuddiesConfig.get().glowTeamColor().rgb();
 	}
 }

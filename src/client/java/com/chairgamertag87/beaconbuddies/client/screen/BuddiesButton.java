@@ -4,7 +4,7 @@ import com.chairgamertag87.beaconbuddies.client.BuddiesHud;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -37,12 +37,12 @@ public class BuddiesButton extends AbstractWidget {
 	}
 
 	@Override
-	protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 		Component text = label.get();
 		setMessage(text);
 		boolean highlighted = active && isHoveredOrFocused();
 		graphics.fill(getX(), getY(), getRight(), getBottom(), !active ? BG_DISABLED : highlighted ? BG_HOVER : BG);
-		graphics.renderOutline(getX(), getY(), width, height, highlighted ? BORDER_HOVER : BuddiesHud.BORDER);
+		graphics.outline(getX(), getY(), width, height, highlighted ? BORDER_HOVER : BuddiesHud.BORDER);
 
 		Font font = Minecraft.getInstance().font;
 		int textWidth = font.width(text);
@@ -53,10 +53,10 @@ public class BuddiesButton extends AbstractWidget {
 		if (swatch != null) {
 			int sy = getY() + (height - swatchSize) / 2;
 			graphics.fill(x, sy, x + swatchSize, sy + swatchSize, 0xFF000000 | swatch.getAsInt());
-			graphics.renderOutline(x - 1, sy - 1, swatchSize + 2, swatchSize + 2, BuddiesHud.BORDER);
+			graphics.outline(x - 1, sy - 1, swatchSize + 2, swatchSize + 2, BuddiesHud.BORDER);
 			x += swatchSize + 4;
 		}
-		graphics.drawString(font, text, x, textY, active ? labelColor.getAsInt() : BuddiesHud.MUTED, true);
+		graphics.text(font, text, x, textY, active ? labelColor.getAsInt() : BuddiesHud.MUTED, true);
 	}
 
 	@Override

@@ -7,7 +7,7 @@ import com.chairgamertag87.beaconbuddies.client.screen.BuddiesButton;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
-import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.Hud;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -87,10 +87,10 @@ public abstract class ChatScreenMixin extends Screen {
 		input.setMaxLength(TeamChat.isTeamTab() ? TeamChat.MAX_LENGTH : TeamChat.VANILLA_MAX_LENGTH);
 	}
 
-	@WrapOperation(method = {"init", "removed", "keyPressed", "mouseScrolled", "mouseClicked", "moveInHistory", "render", "handleChatInput"},
-			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Gui;getChat()Lnet/minecraft/client/gui/components/ChatComponent;"))
-	private ChatComponent beaconbuddies$teamChat(Gui gui, Operation<ChatComponent> original) {
-		return TeamChat.chatFor(original.call(gui));
+	@WrapOperation(method = {"init", "removed", "keyPressed", "mouseScrolled", "mouseClicked", "moveInHistory", "extractRenderState", "handleChatInput"},
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Hud;getChat()Lnet/minecraft/client/gui/components/ChatComponent;"))
+	private ChatComponent beaconbuddies$teamChat(Hud hud, Operation<ChatComponent> original) {
+		return TeamChat.chatFor(original.call(hud));
 	}
 
 	@Inject(method = "handleChatInput", at = @At("HEAD"), cancellable = true)

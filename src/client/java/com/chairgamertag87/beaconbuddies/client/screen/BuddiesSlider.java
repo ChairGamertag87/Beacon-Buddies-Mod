@@ -4,7 +4,7 @@ import com.chairgamertag87.beaconbuddies.client.BuddiesHud;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -34,7 +34,7 @@ public class BuddiesSlider extends AbstractWidget {
 	}
 
 	@Override
-	protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 		int current = value.getAsInt();
 		Component text = label.apply(current);
 		setMessage(text);
@@ -44,10 +44,10 @@ public class BuddiesSlider extends AbstractWidget {
 		int fillRight = getX() + Math.round((width - 1) * (current - min) / (float) (max - min));
 		graphics.fill(getX(), getY(), fillRight, getBottom(), FILL);
 		graphics.fill(fillRight - 1, getY(), fillRight + 1, getBottom(), BuddiesHud.ACCENT);
-		graphics.renderOutline(getX(), getY(), width, height, highlighted ? BuddiesButton.BORDER_HOVER : BuddiesHud.BORDER);
+		graphics.outline(getX(), getY(), width, height, highlighted ? BuddiesButton.BORDER_HOVER : BuddiesHud.BORDER);
 
 		Font font = Minecraft.getInstance().font;
-		graphics.drawString(font, text, getX() + (width - font.width(text)) / 2, getY() + (height - font.lineHeight) / 2 + 1, BuddiesHud.TEXT, true);
+		graphics.text(font, text, getX() + (width - font.width(text)) / 2, getY() + (height - font.lineHeight) / 2 + 1, BuddiesHud.TEXT, true);
 	}
 
 	@Override

@@ -5,8 +5,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.resources.DefaultPlayerSkin;
@@ -56,17 +56,17 @@ public class BuddiesHud implements HudElement {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
+	public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
 		Minecraft client = Minecraft.getInstance();
 		BuddiesConfig config = BuddiesConfig.get();
-		if (client.options.hideGui || !config.hudVisible || !BuddiesSession.isEnabled()) {
+		if (client.gui.hud.isHidden() || !config.hudVisible || !BuddiesSession.isEnabled()) {
 			return;
 		}
 		int top = config.hudPosition == BuddiesConfig.HudPosition.TOP_RIGHT ? topBelowEffects(client) : MARGIN;
 		drawTable(graphics, client.font, HudTable.rows(client), MARGIN, graphics.guiWidth() - MARGIN, top, config);
 	}
 
-	public static int drawTable(GuiGraphics graphics, Font font, List<HudTable.Row> rows, int areaLeft, int areaRight, int top, BuddiesConfig config) {
+	public static int drawTable(GuiGraphicsExtractor graphics, Font font, List<HudTable.Row> rows, int areaLeft, int areaRight, int top, BuddiesConfig config) {
 		List<HudTable.Row> shown = rows.subList(0, Math.min(rows.size(), config.maxRows));
 		int hidden = rows.size() - shown.size();
 		List<Column> columns = columns(config);
@@ -107,8 +107,8 @@ public class BuddiesHud implements HudElement {
 
 		drawTitleBar(graphics, font, left, right, top, title, count);
 		graphics.fill(left, bodyTop, right, top + height, BODY_BG);
-		graphics.renderOutline(left - 1, top - 1, width + 2, height + 2, BORDER);
-		graphics.hLine(left, right - 1, bodyTop, TITLE_HIGHLIGHT);
+		graphics.outline(left - 1, top - 1, width + 2, height + 2, BORDER);
+		graphics.horizontalLine(left, right - 1, bodyTop, TITLE_HIGHLIGHT);
 
 		int[] columnRight = new int[columns.size()];
 		int edge = right - PADDING;
@@ -120,10 +120,10 @@ public class BuddiesHud implements HudElement {
 		int y = bodyTop + 1;
 		int textOffset = (ROW_HEIGHT - font.lineHeight) / 2 + 1;
 		graphics.fill(left, y, right, y + ROW_HEIGHT, HEADER_BG);
-		graphics.drawString(font, player, left + PADDING, y + textOffset, MUTED, true);
+		graphics.text(font, player, left + PADDING, y + textOffset, MUTED, true);
 		for (int c = 0; c < columns.size(); c++) {
 			Component label = Component.translatable(columns.get(c).key);
-			graphics.drawString(font, label, columnRight[c] - font.width(label), y + textOffset, MUTED, true);
+			graphics.text(font, label, columnRight[c] - font.width(label), y + textOffset, MUTED, true);
 		}
 		y += ROW_HEIGHT + 2;
 
@@ -135,28 +135,28 @@ public class BuddiesHud implements HudElement {
 			}
 			int x = left + PADDING;
 			if (config.showHeads) {
-				PlayerFaceRenderer.draw(graphics, skinOf(connection, row.uuid()), x, y + (ROW_HEIGHT - HEAD_SIZE) / 2, HEAD_SIZE);
+				PlayerFaceExtractor.extractRenderState(graphics, skinOf(connection, row.uuid()), x, y + (ROW_HEIGHT - HEAD_SIZE) / 2, HEAD_SIZE);
 			}
-			graphics.drawString(font, row.name(), x + nameOffset, y + textOffset, nameColor(row), true);
+			graphics.text(font, row.name(), x + nameOffset, y + textOffset, nameColor(row), true);
 			for (int c = 0; c < columns.size(); c++) {
 				String value = cell(row, columns.get(c));
-				graphics.drawString(font, value, columnRight[c] - font.width(value), y + textOffset, cellColor(row, columns.get(c), config), true);
+				graphics.text(font, value, columnRight[c] - font.width(value), y + textOffset, cellColor(row, columns.get(c), config), true);
 			}
 			y += ROW_HEIGHT;
 		}
 		if (hidden > 0) {
-			graphics.drawString(font, more, left + PADDING, y + textOffset, MUTED, true);
+			graphics.text(font, more, left + PADDING, y + textOffset, MUTED, true);
 		}
 		return top + height + 1;
 	}
 
-	public static void drawTitleBar(GuiGraphics graphics, Font font, int left, int right, int top, Component title, Component trailing) {
+	public static void drawTitleBar(GuiGraphicsExtractor graphics, Font font, int left, int right, int top, Component title, Component trailing) {
 		graphics.fill(left, top, right, top + TITLE_HEIGHT, TITLE_BG);
-		graphics.hLine(left, right - 1, top, TITLE_HIGHLIGHT);
+		graphics.horizontalLine(left, right - 1, top, TITLE_HIGHLIGHT);
 		int textY = top + (TITLE_HEIGHT - font.lineHeight) / 2 + 1;
 		drawDiamond(graphics, left + PADDING + 2, top + TITLE_HEIGHT / 2);
-		graphics.drawString(font, title, left + PADDING + 8, textY, TEXT, true);
-		graphics.drawString(font, trailing, right - PADDING - font.width(trailing), textY, ACCENT, true);
+		graphics.text(font, title, left + PADDING + 8, textY, TEXT, true);
+		graphics.text(font, trailing, right - PADDING - font.width(trailing), textY, ACCENT, true);
 	}
 
 	private static List<Column> columns(BuddiesConfig config) {
@@ -243,7 +243,7 @@ public class BuddiesHud implements HudElement {
 		return info != null ? info.getSkin() : DefaultPlayerSkin.get(uuid);
 	}
 
-	private static void drawDiamond(GuiGraphics graphics, int cx, int cy) {
+	private static void drawDiamond(GuiGraphicsExtractor graphics, int cx, int cy) {
 		graphics.fill(cx, cy - 2, cx + 1, cy + 3, ACCENT);
 		graphics.fill(cx - 1, cy - 1, cx + 2, cy + 2, ACCENT);
 		graphics.fill(cx - 2, cy, cx + 3, cy + 1, ACCENT);
