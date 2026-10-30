@@ -1,6 +1,6 @@
 # Beacon Buddies
 
-Mod Fabric **client** pour Minecraft **1.21.11**. Active le mode, et tu vois en glowing les autres joueurs du serveur qui l'ont activé aussi. Un tableau en haut de l'écran affiche leur distance, le temps de jeu des joueurs connectés et les blocs posés par toi et tes buddies.
+Mod Fabric **client** pour Minecraft **1.21.11**. Active le mode, et tu vois en glowing les autres joueurs du serveur qui l'ont activé aussi. Un tableau en haut de l'écran affiche leur distance, leur temps de jeu et leurs blocs posés.
 
 Il marche sur n'importe quel serveur : rien à installer côté serveur, tout passe par un petit relais WebSocket.
 
@@ -11,12 +11,12 @@ Il marche sur n'importe quel serveur : rien à installer côté serveur, tout pa
 - **Mode mutuel** : tu ne vois que les joueurs qui ont activé le mode, et seuls eux te voient. Les autres ne voient rien de spécial.
 - **Glowing** : contour à travers les murs sur les buddies proches, couleur au choix parmi les 16 couleurs de Minecraft.
 - **HUD** : un seul tableau, avec une ligne par joueur (tête du skin et pseudo) et une colonne par info.
-  - Ordre des lignes : toi en premier (en turquoise), puis tes buddies du plus proche au plus loin, puis les autres joueurs du serveur (en gris).
+  - Ordre des lignes : toi en premier (en turquoise), puis tes buddies du plus proche au plus loin.
   - Le chiffre dans la barre de titre est le nombre de buddies.
   - Nombre de lignes réglable, puis "+N autres".
   - Position en haut à droite, à gauche ou au centre. En haut à droite, le tableau se décale sous les icônes d'effets de potion.
 - **Distance** (colonne "Dist.") : pour chaque buddy, en vert à moins de 50 blocs, en jaune à moins de 200, en rouge au-delà. "Autre dim." en gris pour ceux qui ne sont pas dans ta dimension.
-- **Temps de jeu** (colonnes "Session" et "Total") : pour tous les joueurs connectés au serveur, même sans le mod. La session en cours en turquoise, le temps de jeu total sur ce serveur en gris.
+- **Temps de jeu** (colonnes "Session" et "Total") : pour toi et tes buddies. La session en cours en turquoise, le temps de jeu total sur ce serveur en gris.
 - **Blocs posés** (colonne "Blocs") : ton nombre de blocs posés sur le serveur et celui de tes buddies.
 - **Menu de paramètres** avec aperçu en direct du HUD.
 - Le mode repasse sur off à chaque connexion à un serveur.
@@ -76,14 +76,14 @@ Les positions restent en mémoire : elles ne sont ni enregistrées ni loggées, 
 
 ### Temps de jeu
 
-Quand le mode est actif, le mod envoie aussi au relais la **tab list** du serveur (pseudo et UUID des joueurs connectés, toutes les 30 secondes et à chaque changement). Le relais en déduit les sessions de chaque joueur et les enregistre :
+Quand le mode est actif, le mod signale au relais que tu es en ligne (toutes les 30 secondes). Le relais en déduit tes sessions et les enregistre :
 
 - **Ce qui est stocké** : l'adresse du serveur, l'UUID, le pseudo, et l'heure de début et de fin de chaque session. Jamais d'IP ni de position.
 - **Qui y a accès** : uniquement les joueurs connectés au même serveur avec le mode actif. Il n'y a pas d'accès public.
 - **Durée de conservation** : les sessions de plus de 90 jours sont supprimées automatiquement.
-- **Limite** : le suivi ne fonctionne que quand au moins un joueur avec le mod et le mode actif est connecté sur le serveur. Le temps passé en dehors n'est pas compté.
+- **Limite** : seul le temps passé avec le mode actif est compté.
 
-Ça concerne **tous les joueurs du serveur**, y compris ceux qui n'ont pas le mod. Pour faire supprimer l'historique d'un joueur, ouvre une issue sur ce dépôt avec son UUID.
+Ça ne concerne **que les joueurs qui ont le mod** et activent le mode : les autres joueurs du serveur ne sont jamais suivis. Pour faire supprimer ton historique, ouvre une issue sur ce dépôt avec ton UUID.
 
 ### Blocs posés
 

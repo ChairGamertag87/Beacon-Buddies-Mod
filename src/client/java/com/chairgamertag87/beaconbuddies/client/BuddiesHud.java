@@ -38,7 +38,6 @@ public class BuddiesHud implements HudElement {
 
 	private static final int ROW_STRIPE = 0x10FFFFFF;
 	private static final int HEADER_BG = 0x30000000;
-	private static final int OTHER = 0xFFB4BEC3;
 	private static final int NEAR = 0xFF5BD873;
 	private static final int MID = 0xFFE9C54A;
 	private static final int FAR = 0xFFE5574E;
@@ -134,9 +133,6 @@ public class BuddiesHud implements HudElement {
 			if (i % 2 == 1) {
 				graphics.fill(left, y, right, y + ROW_HEIGHT, ROW_STRIPE);
 			}
-			if (i > 0 && isOther(row) && !isOther(shown.get(i - 1))) {
-				graphics.hLine(left + PADDING, right - PADDING - 1, y, BORDER);
-			}
 			int x = left + PADDING;
 			if (config.showHeads) {
 				PlayerFaceRenderer.draw(graphics, skinOf(connection, row.uuid()), x, y + (ROW_HEIGHT - HEAD_SIZE) / 2, HEAD_SIZE);
@@ -176,10 +172,6 @@ public class BuddiesHud implements HudElement {
 		return columns;
 	}
 
-	private static boolean isOther(HudTable.Row row) {
-		return !row.self() && !row.buddy();
-	}
-
 	private static String cell(HudTable.Row row, Column column) {
 		return switch (column) {
 			case DISTANCE -> {
@@ -209,10 +201,7 @@ public class BuddiesHud implements HudElement {
 		if (row.self()) {
 			return ACCENT;
 		}
-		if (row.buddy()) {
-			return row.otherDimension() ? MUTED : TEXT;
-		}
-		return OTHER;
+		return row.otherDimension() ? MUTED : TEXT;
 	}
 
 	private static int topBelowEffects(Minecraft client) {

@@ -5,14 +5,11 @@ import com.chairgamertag87.beaconbuddies.client.relay.PlayerStat;
 import com.chairgamertag87.beaconbuddies.client.relay.RelayClient;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,7 +22,6 @@ public final class BuddiesSession {
 	private static final int POS_INTERVAL_TICKS = 10;
 	private static final int PLAYERS_CHECK_TICKS = 20;
 	private static final int PLAYERS_RESEND_TICKS = 600;
-	private static final int MAX_REPORTED_PLAYERS = 500;
 
 	private static final RelayClient RELAY = new RelayClient(RELAY_URL, new RelayListener());
 
@@ -81,7 +77,7 @@ public final class BuddiesSession {
 			lastDimension = dimension;
 			RELAY.sendPos(player.getX(), player.getY(), player.getZ(), dimension);
 		}
-		reportPlayers(client.getConnection());
+		reportSelf(player, client.getUser().getName());
 		BlockStats.tick(client.getConnection());
 		long placed = BlockStats.placed();
 		if (placed >= 0 && placed != lastSentPlaced) {
@@ -90,19 +86,13 @@ public final class BuddiesSession {
 		}
 	}
 
-	private static void reportPlayers(ClientPacketListener connection) {
-		if (connection == null || ++playersCheckCounter < PLAYERS_CHECK_TICKS) {
+	private static void reportSelf(LocalPlayer player, String name) {
+		if (++playersCheckCounter < PLAYERS_CHECK_TICKS) {
 			return;
 		}
 		playersResendCounter += playersCheckCounter;
 		playersCheckCounter = 0;
-		Map<UUID, String> players = new LinkedHashMap<>();
-		for (PlayerInfo info : connection.getOnlinePlayers()) {
-			if (players.size() >= MAX_REPORTED_PLAYERS) {
-				break;
-			}
-			players.put(info.getProfile().id(), info.getProfile().name());
-		}
+		Map<UUID, String> players = Map.of(player.getUUID(), name);
 		if (players.equals(lastPlayers) && playersResendCounter < PLAYERS_RESEND_TICKS) {
 			return;
 		}

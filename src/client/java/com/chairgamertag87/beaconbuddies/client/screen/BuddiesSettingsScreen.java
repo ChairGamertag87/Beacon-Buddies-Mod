@@ -37,8 +37,7 @@ public class BuddiesSettingsScreen extends Screen {
 			sample("Steve", false, true, 64, 4_380, 553_000, 48_210),
 			sample("Luna", false, true, 412, 7_900, 46_800, 921),
 			sample("Sam", false, true, Double.POSITIVE_INFINITY, 1_200, 8_700, 15_002),
-			sample("Kai", false, false, HudTable.NO_DISTANCE, 300, 2_100, HudTable.UNKNOWN),
-			sample("Milo", false, false, HudTable.NO_DISTANCE, 5_100, 1_800, HudTable.UNKNOWN));
+			sample("Kai", false, true, 1_480, 300, 2_100, 640));
 
 	private record Row(Component label, int y) {
 	}

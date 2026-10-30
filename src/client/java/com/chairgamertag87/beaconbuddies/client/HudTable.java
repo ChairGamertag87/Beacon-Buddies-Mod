@@ -3,7 +3,6 @@ package com.chairgamertag87.beaconbuddies.client;
 import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -37,19 +36,13 @@ public final class HudTable {
 		for (BuddyList.Entry entry : BuddyList.sorted(client)) {
 			rows.putIfAbsent(entry.buddy().uuid(), new Row(entry.buddy().uuid(), entry.buddy().name(), false, true, entry.distance(), UNKNOWN, UNKNOWN, entry.buddy().placed()));
 		}
-		List<Row> others = new ArrayList<>();
 		for (PlaytimeList.Entry entry : PlaytimeList.sorted()) {
 			Row row = rows.get(entry.uuid());
 			if (row != null) {
 				rows.put(entry.uuid(), row.withPlaytime(entry.sessionSeconds(), entry.totalSeconds()));
-			} else {
-				others.add(new Row(entry.uuid(), entry.name(), false, false, NO_DISTANCE, entry.sessionSeconds(), entry.totalSeconds(), UNKNOWN));
 			}
 		}
-		List<Row> result = new ArrayList<>(rows.values());
-		others.sort(Comparator.comparingLong(Row::totalSeconds).reversed().thenComparing(Row::name, String.CASE_INSENSITIVE_ORDER));
-		result.addAll(others);
-		return result;
+		return new ArrayList<>(rows.values());
 	}
 
 	public static String formatCount(long count) {
