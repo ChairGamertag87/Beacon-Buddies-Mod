@@ -22,17 +22,26 @@ import java.util.stream.Collectors;
 public final class BuddiesSession {
 	public static final String RELAY_URL = "wss://beaconbuddies.habibiserver.dev/beaconbuddies";
 	private static final int POS_INTERVAL_TICKS = 10;
+	private static final int POS_KEEPALIVE_TICKS = 100;
+	private static final double POS_MIN_MOVE_SQ = 0.0625;
 	private static final int PLAYERS_CHECK_TICKS = 20;
 	private static final int PLAYERS_RESEND_TICKS = 600;
 
 	private static final RelayClient RELAY = new RelayClient(RELAY_URL, new RelayListener(), BuddiesSession::joinMojang);
 
 	private static boolean inGame;
+	private static UUID selfUuid;
+	private static String selfName;
+	private static String serverAddress;
 	private static boolean wanted;
 	private static boolean enabled;
 	private static Map<UUID, Buddy> buddies = Map.of();
 	private static int tickCounter;
 	private static String lastDimension;
+	private static double lastX;
+	private static double lastY;
+	private static double lastZ;
+	private static int posIdleTicks;
 	private static Map<UUID, PlayerStat> stats = Map.of();
 	private static long clockOffsetMs;
 	private static Map<UUID, String> lastPlayers;
@@ -55,7 +64,9 @@ public final class BuddiesSession {
 		stats = Map.of();
 		lastDimension = null;
 		BlockStats.reset();
-		RELAY.connect(client.player.getUUID(), client.getUser().getName(), normalizeAddress(server.ip));
+		selfUuid = client.player.getUUID();
+		selfName = client.getUser().getName();
+		serverAddress = normalizeAddress(server.ip);
 	}
 
 	public static void onDisconnect() {
@@ -77,8 +88,15 @@ public final class BuddiesSession {
 		boolean dimensionChanged = !dimension.equals(lastDimension);
 		if (dimensionChanged || ++tickCounter >= POS_INTERVAL_TICKS) {
 			tickCounter = 0;
-			lastDimension = dimension;
-			RELAY.sendPos(player.getX(), player.getY(), player.getZ(), dimension);
+			posIdleTicks += POS_INTERVAL_TICKS;
+			if (dimensionChanged || posIdleTicks >= POS_KEEPALIVE_TICKS || player.distanceToSqr(lastX, lastY, lastZ) >= POS_MIN_MOVE_SQ) {
+				posIdleTicks = 0;
+				lastDimension = dimension;
+				lastX = player.getX();
+				lastY = player.getY();
+				lastZ = player.getZ();
+				RELAY.sendPos(lastX, lastY, lastZ, dimension);
+			}
 		}
 		reportSelf(player, client.getUser().getName());
 		BlockStats.tick(client.getConnection());
@@ -111,11 +129,19 @@ public final class BuddiesSession {
 			return;
 		}
 		wanted = on;
-		if (!RELAY.isOpen()) {
-			message(client, Component.translatable(RELAY.hasAuthFailed() ? "beaconbuddies.message.auth_failed" : "beaconbuddies.message.offline"));
+		if (RELAY.isOpen()) {
+			RELAY.sendState(on);
 			return;
 		}
-		RELAY.sendState(on);
+		if (!on) {
+			RELAY.disconnect();
+			message(client, Component.translatable("beaconbuddies.message.disabled"));
+			return;
+		}
+		if (!RELAY.isWanted()) {
+			RELAY.connect(selfUuid, selfName, serverAddress);
+		}
+		message(client, Component.translatable(RELAY.hasFailed() ? "beaconbuddies.message.offline" : "beaconbuddies.message.connecting"));
 	}
 
 	public static void toggle() {
@@ -130,8 +156,8 @@ public final class BuddiesSession {
 		return enabled;
 	}
 
-	public static boolean isRelayOpen() {
-		return RELAY.isOpen();
+	public static boolean isRelayDown() {
+		return wanted && !RELAY.isOpen() && RELAY.hasFailed();
 	}
 
 	public static boolean isChatAvailable() {
@@ -217,8 +243,20 @@ public final class BuddiesSession {
 					buddies = Map.of();
 					stats = Map.of();
 					TeamChat.leaveTeamTab();
+					if (!wanted) {
+						RELAY.disconnect();
+					}
 				}
 				message(client, Component.translatable(on ? "beaconbuddies.message.enabled" : "beaconbuddies.message.disabled"));
+			});
+		}
+
+		@Override
+		public void onRejected() {
+			Minecraft client = Minecraft.getInstance();
+			client.execute(() -> {
+				wanted = false;
+				message(client, Component.translatable("beaconbuddies.message.auth_failed"));
 			});
 		}
 

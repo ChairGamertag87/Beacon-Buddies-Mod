@@ -121,7 +121,7 @@ public class BuddiesSettingsScreen extends Screen {
 		if (!BuddiesSession.isInGame()) {
 			return Component.translatable("beaconbuddies.setting.multiplayer_only");
 		}
-		if (!BuddiesSession.isRelayOpen()) {
+		if (BuddiesSession.isRelayDown()) {
 			return Component.translatable("beaconbuddies.setting.offline");
 		}
 		return Component.translatable(BuddiesSession.isEnabled() ? "beaconbuddies.setting.on" : "beaconbuddies.setting.off");
