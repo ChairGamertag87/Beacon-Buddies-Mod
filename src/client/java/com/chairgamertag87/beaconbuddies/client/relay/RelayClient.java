@@ -6,6 +6,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import net.fabricmc.loader.api.FabricLoader;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
@@ -18,12 +20,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 public class RelayClient {
 	private static final int PROTOCOL_VERSION = 1;
 	private static final long MIN_RETRY_SECONDS = 5;
 	private static final long MAX_RETRY_SECONDS = 60;
+	private static final int CLOSE_REJECTED = 1008;
+	private static final int CLOSE_OVERLOADED = 1013;
+	private static final String CLIENT_VERSION = FabricLoader.getInstance().getModContainer(BeaconBuddies.MOD_ID)
+			.map(mod -> mod.getMetadata().getVersion().getFriendlyString())
+			.orElse("unknown");
 
 	public interface Listener {
 		void onConnected();
@@ -37,6 +45,8 @@ public class RelayClient {
 		void onStats(List<PlayerStat> stats, long relayNow);
 
 		void onChat(UUID uuid, String name, String text);
+
+		void onRejected();
 	}
 
 	public interface Authenticator {
@@ -58,6 +68,7 @@ public class RelayClient {
 	private boolean open;
 	private boolean ready;
 	private volatile boolean authFailed;
+	private volatile boolean failed;
 	private volatile boolean statsSupported;
 	private volatile boolean blocksSupported;
 	private volatile boolean chatSupported;
@@ -78,9 +89,11 @@ public class RelayClient {
 		hello.addProperty("uuid", uuid.toString());
 		hello.addProperty("name", name);
 		hello.addProperty("server", server);
+		hello.addProperty("client", CLIENT_VERSION);
 		this.helloJson = hello.toString();
 		this.wanted = true;
 		this.authFailed = false;
+		this.failed = false;
 		this.retrySeconds = MIN_RETRY_SECONDS;
 		openSocket();
 	}
@@ -102,6 +115,14 @@ public class RelayClient {
 
 	public synchronized boolean isOpen() {
 		return open && ready;
+	}
+
+	public synchronized boolean isWanted() {
+		return wanted;
+	}
+
+	public boolean hasFailed() {
+		return failed;
 	}
 
 	public boolean hasAuthFailed() {
@@ -130,9 +151,9 @@ public class RelayClient {
 	public void sendPos(double x, double y, double z, String dimension) {
 		JsonObject msg = new JsonObject();
 		msg.addProperty("type", "pos");
-		msg.addProperty("x", x);
-		msg.addProperty("y", y);
-		msg.addProperty("z", z);
+		msg.addProperty("x", round(x));
+		msg.addProperty("y", round(y));
+		msg.addProperty("z", round(z));
 		msg.addProperty("dim", dimension);
 		send(msg.toString());
 	}
@@ -199,13 +220,13 @@ public class RelayClient {
 					.buildAsync(uri, new SocketListener());
 		} catch (RuntimeException e) {
 			BeaconBuddies.LOGGER.warn("Impossible d'ouvrir la connexion au relais : {}", e.getMessage());
-			scheduleRetry();
+			scheduleRetry(0);
 			return;
 		}
 		connecting.whenComplete((ws, error) -> {
 			if (error != null) {
 				BeaconBuddies.LOGGER.warn("Relais injoignable : {}", error.getMessage());
-				scheduleRetry();
+				scheduleRetry(0);
 				return;
 			}
 			synchronized (this) {
@@ -219,23 +240,30 @@ public class RelayClient {
 				statsSupported = false;
 				blocksSupported = false;
 				chatSupported = false;
-				retrySeconds = MIN_RETRY_SECONDS;
 				sendChain = CompletableFuture.completedFuture(null);
 			}
 			send(hello);
 		});
 	}
 
-	private synchronized void scheduleRetry() {
+	private synchronized void scheduleRetry(long minSeconds) {
 		if (!wanted) {
 			return;
 		}
-		long delay = retrySeconds;
+		failed = true;
+		long delay = Math.max(retrySeconds, minSeconds) * 1000;
 		retrySeconds = Math.min(retrySeconds * 2, MAX_RETRY_SECONDS);
-		scheduler.schedule(this::openSocket, delay, TimeUnit.SECONDS);
+		long jitter = ThreadLocalRandom.current().nextLong(delay / 2 + 1);
+		scheduler.schedule(this::openSocket, delay + jitter, TimeUnit.MILLISECONDS);
 	}
 
-	private void onSocketClosed(WebSocket ws) {
+	private void reject() {
+		authFailed = true;
+		disconnect();
+		listener.onRejected();
+	}
+
+	private void onSocketClosed(WebSocket ws, int statusCode) {
 		boolean wasReady;
 		synchronized (this) {
 			if (ws != socket) {
@@ -249,7 +277,11 @@ public class RelayClient {
 		if (wasReady) {
 			listener.onDisconnected();
 		}
-		scheduleRetry();
+		if (statusCode == CLOSE_REJECTED) {
+			reject();
+		} else {
+			scheduleRetry(statusCode == CLOSE_OVERLOADED ? MAX_RETRY_SECONDS : 0);
+		}
 	}
 
 	private void handleMessage(String text) {
@@ -292,8 +324,8 @@ public class RelayClient {
 			try {
 				authenticator.join(challenge);
 			} catch (Exception e) {
-				authFailed = true;
 				BeaconBuddies.LOGGER.warn("Vérification du compte Minecraft impossible : {}", e.getMessage());
+				reject();
 				return;
 			}
 			authFailed = false;
@@ -314,8 +346,14 @@ public class RelayClient {
 				return;
 			}
 			ready = true;
+			failed = false;
+			retrySeconds = MIN_RETRY_SECONDS;
 		}
 		listener.onConnected();
+	}
+
+	private static double round(double value) {
+		return Math.round(value * 100) / 100.0;
 	}
 
 	private static List<Buddy> parseBuddies(JsonArray players) {
@@ -399,14 +437,14 @@ public class RelayClient {
 
 		@Override
 		public CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
-			onSocketClosed(ws);
+			onSocketClosed(ws, statusCode);
 			return null;
 		}
 
 		@Override
 		public void onError(WebSocket ws, Throwable error) {
 			BeaconBuddies.LOGGER.warn("Connexion au relais perdue : {}", error.getMessage());
-			onSocketClosed(ws);
+			onSocketClosed(ws, -1);
 		}
 	}
 }

@@ -84,7 +84,7 @@ public class BeaconBuddiesClient implements ClientModInitializer {
 		String key;
 		if (!BuddiesSession.isInGame()) {
 			key = "beaconbuddies.status.unavailable";
-		} else if (!BuddiesSession.isRelayOpen()) {
+		} else if (BuddiesSession.isRelayDown()) {
 			key = "beaconbuddies.status.offline";
 		} else {
 			key = BuddiesSession.isEnabled() ? "beaconbuddies.status.enabled" : "beaconbuddies.status.disabled";

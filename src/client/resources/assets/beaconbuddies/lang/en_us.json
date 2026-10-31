@@ -3,6 +3,7 @@
 	"key.beaconbuddies.toggle": "Toggle buddy mode",
 	"beaconbuddies.message.enabled": "Beacon Buddies: mode enabled",
 	"beaconbuddies.message.disabled": "Beacon Buddies: mode disabled",
+	"beaconbuddies.message.connecting": "Beacon Buddies: connecting to the relay...",
 	"beaconbuddies.message.offline": "Beacon Buddies: relay unreachable, retrying",
 	"beaconbuddies.message.auth_failed": "Beacon Buddies: Minecraft account not verified, the mode is unavailable",
 	"beaconbuddies.message.unavailable": "Beacon Buddies: multiplayer only",
